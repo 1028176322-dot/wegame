@@ -1,0 +1,10 @@
+{
+  "start_gold": 300.0,
+  "exchange_rate": 0.1,
+  "emergency_max_per_session": 3.0,
+  "emergency_trigger_lives": 5.0,
+  "kill_reward_gold": 5.0,
+  "boss_reward_gold": 100.0,
+  "inflation_threshold": 1.5,
+  "sell_refund_rate": 0.7
+}

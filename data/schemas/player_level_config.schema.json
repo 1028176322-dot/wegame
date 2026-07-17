@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "player_level_config",
+  "type": "object",
+  "properties": {
+    "plv.L1.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L1.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L1.range_mult": {
+      "type": "number"
+    },
+    "plv.L1.xp_required": {
+      "type": "number"
+    },
+    "plv.L10.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L10.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L10.range_mult": {
+      "type": "number"
+    },
+    "plv.L10.xp_required": {
+      "type": "number"
+    },
+    "plv.L11.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L11.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L11.range_mult": {
+      "type": "number"
+    },
+    "plv.L11.xp_required": {
+      "type": "number"
+    },
+    "plv.L12.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L12.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L12.range_mult": {
+      "type": "number"
+    },
+    "plv.L12.xp_required": {
+      "type": "number"
+    },
+    "plv.L13.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L13.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L13.range_mult": {
+      "type": "number"
+    },
+    "plv.L13.xp_required": {
+      "type": "number"
+    },
+    "plv.L14.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L14.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L14.range_mult": {
+      "type": "number"
+    },
+    "plv.L14.xp_required": {
+      "type": "number"
+    },
+    "plv.L15.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L15.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L15.range_mult": {
+      "type": "number"
+    },
+    "plv.L15.xp_required": {
+      "type": "number"
+    },
+    "plv.L16.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L16.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L16.range_mult": {
+      "type": "number"
+    },
+    "plv.L16.xp_required": {
+      "type": "number"
+    },
+    "plv.L17.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L17.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L17.range_mult": {
+      "type": "number"
+    },
+    "plv.L17.xp_required": {
+      "type": "number"
+    },
+    "plv.L18.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L18.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L18.range_mult": {
+      "type": "number"
+    },
+    "plv.L18.xp_required": {
+      "type": "number"
+    },
+    "plv.L19.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L19.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L19.range_mult": {
+      "type": "number"
+    },
+    "plv.L19.xp_required": {
+      "type": "number"
+    },
+    "plv.L2.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L2.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L2.range_mult": {
+      "type": "number"
+    },
+    "plv.L2.xp_required": {
+      "type": "number"
+    },
+    "plv.L20.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L20.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L20.range_mult": {
+      "type": "number"
+    },
+    "plv.L20.xp_required": {
+      "type": "number"
+    },
+    "plv.L3.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L3.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L3.range_mult": {
+      "type": "number"
+    },
+    "plv.L3.xp_required": {
+      "type": "number"
+    },
+    "plv.L4.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L4.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L4.range_mult": {
+      "type": "number"
+    },
+    "plv.L4.xp_required": {
+      "type": "number"
+    },
+    "plv.L5.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L5.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L5.range_mult": {
+      "type": "number"
+    },
+    "plv.L5.xp_required": {
+      "type": "number"
+    },
+    "plv.L6.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L6.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L6.range_mult": {
+      "type": "number"
+    },
+    "plv.L6.xp_required": {
+      "type": "number"
+    },
+    "plv.L7.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L7.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L7.range_mult": {
+      "type": "number"
+    },
+    "plv.L7.xp_required": {
+      "type": "number"
+    },
+    "plv.L8.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L8.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L8.range_mult": {
+      "type": "number"
+    },
+    "plv.L8.xp_required": {
+      "type": "number"
+    },
+    "plv.L9.atk_speed_mult": {
+      "type": "number"
+    },
+    "plv.L9.dmg_mult": {
+      "type": "number"
+    },
+    "plv.L9.range_mult": {
+      "type": "number"
+    },
+    "plv.L9.xp_required": {
+      "type": "number"
+    },
+    "plv_max_level": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

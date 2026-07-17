@@ -1,6 +1,8 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S5 战斗系统 (Combat System)
 
+## 0. 元数据头
+
 > 归属域：A 核心战斗域 · 层级/优先级：MVP / P0 · 关联 F 码：F7 · 关联：GDD §5.7 + 状态机制（GDD 待补 §5.8，见末尾冲突说明）；SYSTEM_BREAKDOWN §S5；S29 玩家等级系统（等级加成由 S02 建塔时套用，S05 仅消费）
 > 状态：v0.2-detailed · 日期 2026-07-17
 > 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
@@ -403,16 +405,16 @@ function onEnemyDeath(target):
 
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 |
 |---|---|---|---|---|
-| counter_matrix | json | type×armor→系数 0.5–2.0 | `[PLACEHOLDER]` | 克制系数表。**调优杆**：P4 决策有效性 |
-| armor_reduce | json | armor→减伤% 0–0.9 | `[PLACEHOLDER]` | 护甲减伤。**调优杆**：克制深度 |
-| projectile_speed | float | 100–2000 | `[PLACEHOLDER]` | 弹速(px/s)。**调优杆**：手感 |
-| splash_radius | float | 0–200 | `[PLACEHOLDER]` | 溅射半径(炮)。**调优杆**：AOE 效率 |
-| slow_factor | float | 0.3–0.9 | `[PLACEHOLDER]` | 冰减速比例。**调优杆**：保命强度 |
-| slow_duration | float | 0.5–5 | `[PLACEHOLDER]` | 减速时长。**调优杆**：控制链 |
-| poison_dps | float | 1–100 | `[PLACEHOLDER]` | 毒每秒伤害。**调优杆**：越肉越赚 |
-| poison_duration | float | 1–10 | `[PLACEHOLDER]` | 毒时长。**调优杆**：DOT 总量 |
-| chain_count | int | 0–10 | `[PLACEHOLDER]` | 电连锁跳数（钳制上限防 solo）。**调优杆**：密集处理 |
-| chain_range | float | 50–400 | `[PLACEHOLDER]` | 连锁半径。**调优杆**：弹射覆盖 |
+| counter_matrix | json | type×armor→系数 0.5–2.0 | `value_ref: config/combat_config.json#/counter_matrix` | 克制系数表（逐键初值见 balance/S05_combat.json#combat_cm_*）。**调优杆**：P4 决策有效性 |
+| armor_reduce | json | armor→减伤% 0–0.9 | `value_ref: config/combat_config.json#/armor_reduce` | 护甲减伤（逐甲初值见 balance/S05_combat.json#combat_armor_*；N3 已弃 combat_armor_poison）。**调优杆**：克制深度 |
+| projectile_speed | float | 100–2000 | `value_ref: balance/S05_combat.json#combat_projectile_speed` | 弹速(px/s)。**调优杆**：手感 |
+| splash_radius | float | 0–200 | `value_ref: balance/S05_combat.json#combat_splash_radius` | 溅射半径(炮)。**调优杆**：AOE 效率 |
+| slow_factor | float | 0.3–0.9 | `value_ref: balance/S05_combat.json#combat_slow_factor` | 冰减速比例。**调优杆**：保命强度 |
+| slow_duration | float | 0.5–5 | `value_ref: balance/S05_combat.json#combat_slow_duration` | 减速时长。**调优杆**：控制链 |
+| poison_dps | float | 1–100 | `value_ref: balance/S05_combat.json#combat_poison_dps` | 毒每秒伤害。**调优杆**：越肉越赚 |
+| poison_duration | float | 1–10 | `value_ref: balance/S05_combat.json#combat_poison_duration` | 毒时长。**调优杆**：DOT 总量 |
+| chain_count | int | 0–10 | `value_ref: balance/S05_combat.json#combat_chain_count` | 电连锁跳数（钳制上限防 solo）。**调优杆**：密集处理 |
+| chain_range | float | 50–400 | `value_ref: balance/S05_combat.json#combat_chain_range` | 连锁半径。**调优杆**：弹射覆盖 |
 | status_stack_rule | enum | refresh/stack | "refresh" | 同类型状态叠加规则（默认刷新） |
 | damage_formula | string | 模板 | "base*level_bonus*growth^lv*counter-armor" | 伤害公式（`level_bonus` 取自 S29 等级加成，不累加；结构，不可热更逻辑） |
 
@@ -420,12 +422,12 @@ function onEnemyDeath(target):
 
 ```json
 {
-  "arrow_vs_light": "[PLACEHOLDER]",
-  "cannon_vs_heavy": "[PLACEHOLDER]",
+  "arrow_vs_light": "value_ref: balance/S05_combat.json#combat_cm_arrow_vs_light",
+  "cannon_vs_heavy": "value_ref: balance/S05_combat.json#combat_cm_cannon_vs_heavy",
   "ice_vs_none": 1.0,
-  "magic_vs_magic_immune": "[PLACEHOLDER]",
-  "poison_vs_heavy": "[PLACEHOLDER]",
-  "electric_vs_air": "[PLACEHOLDER]"
+  "magic_vs_magic_immune": "value_ref: balance/S05_combat.json#combat_cm_magic_vs_magic_immune",
+  "poison_vs_heavy": "value_ref: balance/S05_combat.json#combat_cm_poison_vs_heavy",
+  "electric_vs_air": "value_ref: balance/S05_combat.json#combat_cm_electric_vs_air"
 }
 ```
 
@@ -444,3 +446,108 @@ function onEnemyDeath(target):
 | 连锁特效 | 4 帧（闪电链 0.2s） | 128×128 | Atlas | 多目标连线 |
 
 > 所有战斗特效与打击感、音效合并见 S23；性能预算需评估同屏粒子数（见 §2.4 性能极值）。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| tower_effective | object | S02 建塔/升级合成（含 S29 等级加成、growth、S28 skill_mod） |
+| enemy_attr | object | S31 `enemy_config`（hp/speed/armor_type） |
+| player_level_config | json | S29（建塔时消费，不累加） |
+| status_config | json | S33 `status_effect_config`（buff_mod 分解） |
+| skill_config | json | S28 `skill_config`（主动技/被动钩子） |
+| combat_config | json | 本系统 §3（counter_matrix / armor_reduce / 弹速 / 溅射 / 减速 / 毒 / 连锁） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| effective_dmg | number | 单次有效伤害（§2.5 Step7） |
+| status_applied | event | 状态施加（→S33.applyStatus） |
+| enemy_death | event | 死亡（→S3/S4/S8 奖励+计数） |
+| damage_float | event | 伤害飘字（z35，按 damage_type 着色 S30） |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S5 | S1 | `spawnProjectile()` / `onReachEnd(enemy)` | out/in | 弹道 / 漏怪回调 |
+| S5 | S2 | `getTowerEffective(towerId)` / `onTowerSold(towerId)` | in | 取塔有效属性 / 卖塔通知 |
+| S5 | S30 | `getCounter(dmgType, armorType)` / `getArmorReduce(armorType)` | in | 克制 / 减伤矩阵（权威） |
+| S5 | S33 | `applyStatus(target, id, strength, dur)` / `getBuffMod(target)` | out/in | 状态施加 / 读取 buff_mod |
+| S5 | S28 | `onActiveSkill(towerId)` / `onPassiveProc(event)` | in/out | 主动技结算 / 被动钩子 |
+| S5 | S3 | `addGold(gold)` / `addWood(wood, session=true)` | in | 击杀金 / 掉木（session） |
+| S5 | S4 | `onKill(target)` | in | 波 / 杀计数 |
+| S5 | S8 | `onEnemyDeath(target)` | in | 结算触发（XP） |
+
+### 5.4 错误码表（E01–E20，本系统既有，权威见 §2.5.8）
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 塔 dmg 为负 | `clamp(dmg,0,max)`，负值置 0 | S30-E01 |
+| E02 | eff_dmg / HP 溢出 | 钳 `attr_dmg_max` / `attr_hp_max`；S24 报可疑 | S30-E02 |
+| E03 | 除零 | 管线无分母（armor_mitig=1−reduce 恒安全）；reduce 缺→0 | S30-E03 |
+| E04 | 矩阵缺键 `[dmg][armor]` | counter 默认 1.0 + S25 告警 | S30-E04 |
+| E05 | armor_type 未知 | 降级 `none`（reduce 0，无减免） | S30-E05 |
+| E06 | damage_type 未知 | 降级 `physical` | S30-E06 |
+| E07 | 等级加成缺失 | 按 Lv1 行（mult 1.0，无加成） | S30-E07/S29-E03 |
+| E08 | 等级加成越界 | 钳制合法区间；S24 报可疑 | S30-E08 |
+| E09 | skill_mod 缺失 | =1.0（无修正） | S30-E09 |
+| E10 | buff_mod 缺失 | =1.0（无修正） | S30-E10 |
+| E11 | 敌派生 HP≤0 | 钳 `attr_hp_min=1` | S30-E11 |
+| E12 | NaN/Inf | 钳 [min,max]；S24 报可疑 | S30-E12 |
+| E13 | armor_break 把 armor 打负 | `eff_reduce=clamp(base_reduce×Πarmor_mult,0,0.9)≥0`；armor_mitig≤1.0 | S33-§2.4 |
+| E14 | magic×magic_immune=0 | effective_dmg=0，正常免疫，无死循环 | S31-§2.4 |
+| E15 | 易伤/导电叠满 | `incoming_dmg_mult=clamp(…,1.0,3.0)` | S33-§2.4 |
+| E16 | 多塔同帧打同怪 | 各弹道独立串行扣血，最终一致 | S05-§2.4 |
+| E17 | 目标飞行中死亡 | 弹道转火附近怪 / 失效 | S05-§2.4 |
+| E18 | 减速 speed→0 | `slow_k` 钳 `min=0.1`，move_speed 永不为 0 | S33-§2.4 |
+| E19 | 击退越界 | 位移钳至路径最近点，不脱离路径 | S33-§2.4 |
+| E20 | eff_dmg 负数（vuln/armor 组合） | `max(0, …)` 钳 0 | 本管线 Step7 |
+
+### 5.5 状态转换表（单发弹道，自 §2.2 stateDiagram-v2）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Flying | 到达目标 | → Hit | 结算伤害 / 状态 |
+| Hit | damage_type=control(冰/风) | → Applying(control) | S33.applyStatus(slow/knockback)，无 HP 损失 |
+| Hit | damage_type=伤害型 | → Applying | computeDamage() |
+| Applying | 目标血量≤0 | → Dead | 死亡处理（S3/S4/S8 奖励） |
+| Applying | 目标存活 | → [*] | 继续 |
+| Flying | 目标飞行中死亡 | → Retarget | 转火附近怪 |
+| Retarget | 转火附近怪 | → Flying | 继续弹道 |
+| Retarget | 无目标 | → [*] | 消失 |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| combat_cm_arrow_vs_light / combat_cm_cannon_vs_heavy / combat_cm_ice_vs_none / combat_cm_magic_vs_magic_immune / combat_cm_poison_vs_heavy / combat_cm_electric_vs_air | balance/S05_combat.json |
+| combat_armor_none / combat_armor_light / combat_armor_heavy / combat_armor_magic_immune（N3 已弃 combat_armor_poison） | balance/S05_combat.json |
+| combat_projectile_speed / combat_splash_radius / combat_slow_factor / combat_slow_duration / combat_poison_dps / combat_poison_duration / combat_chain_count / combat_chain_range | balance/S05_combat.json |
+| combat_dmg_round / combat_electric_vs_air_override | balance/S05_combat.json |
+| combat_crit_rate / combat_crit_mult | balance/S05_combat.json（NEEDS-DESIGN，暴击机制未设计） |
+| counter_matrix / armor_reduce（结构化） | config/combat_config.json（路由至 combat_cm_*/combat_armor_*） |
+
+> 跨系统消费（非本系统 param，仅引用）：塔有效属性来自 S02 `tower_config`（base_dps/growth）；克制/减伤权威在 S30 `attr_cm_*`/`attr_armor_*`（本系统 combat_cm_*/combat_armor_* 为战斗侧镜像初值，单一事实源以 S30 为准）；buff_mod 来自 S33；击杀金/木来自 S03/S04/S31。
+
+---
+
+## 6. 冲突与待裁定
+
+> 详细跨系统公式冲突分析见 §2.5.10（C-1～C-8）；下表为本系统冲突的**三要素裁定登记表**（current_implementation / pending_decision / owner）。
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-1 magic×magic_immune 系数 | 本管线采用 S30 **0.0**（魔免免疫魔法，铁律）；`balance/S05_combat.json#combat_cm_magic_vs_magic_immune = 0.0` 已与 S30 一致 | 维持 0.0（铁律），旧文档所述 1.5 已废弃 | S30（已裁定） |
+| C-2 armor 枚举 / 毒甲 | `armor_type` 权威 = none/light/heavy/magic_immune/**air**（无 poison）；`combat_armor_poison` 已按 N3 删除；S04 枚举同步改 air | 维持 air 甲（弃 poison）；`e_poison_01` 重分类待 S04/S30 确认 | S30/S04（N3 已采纳） |
+| C-3 electric 对空克制 | 电塔 `damage_type=physical`，用覆盖系数 `combat_electric_vs_air_override=1.5`（非通用 physical_air=0.5） | S30/S02 固化此逐塔覆盖系数 | S30/S02 |
+| C-4 护甲双重模型 | 采用 S30 全管线 `eff_dmg = raw×counter×(1−eff_reduce)×incoming` | 维持全模型；若只用矩阵须重算 20 项 | S30（已裁定） |
+| C-5 armor 连续值 vs 类型 | 折中：`eff_reduce = base_reduce × Π armor_mult`（离散类型可读） | S30/S33 统一单一模型 | S30/S33 |
+| C-6 S05 §3 `damage_formula` 减法 | 命中公式用乘法 `×(1−reduce)`（与 S30/S33 一致） | 更新 S05 §3 `damage_formula` 文案为乘法（结构占位，不改逻辑） | S05 |
+| C-7 `corrosion` 语义 | 按 S33「护甲削减 / 层 cap5」实现（corrosion_val=15%/层 cap5，接入 buff_mod.armor_mult）；S28 原文「腐蚀=DoT 可叠」待改 | 采纳 S33 语义，S28 §2.6 文案同步改（见 S28 改造 N2） | S28/S33（DO 已采纳，见 SPEC §9） |
+| C-8 公式一致性（双重计算陷阱） | Step1 已含 skill_mod / buff_mod.dmg_mult；命中公式不再乘避免双重 | 维持；文档已澄清 | S30/S05 |

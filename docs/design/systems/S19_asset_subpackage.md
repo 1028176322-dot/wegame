@@ -1,13 +1,19 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S19 分包 / 资源加载系统 (Asset / Subpackage System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：MVP / P1 · 关联 F 码：F30 F34 F35 · 关联：SYSTEM_BREAKDOWN §S19 · GDD §8（适配）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：3 组件 + 模块表 + 4 条异常）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：MVP / P1
+- 关联 F 码：F30 F34 F35
+- 关联系统：S10（大厅进关）、S1（进关）、S23（音频资产挂载 F35）、F23（构建期生成配置）、S20（切后台暂停下载）、S25（告警）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：`wx.loadSubpackage`；F23 构建管线；S23 资源管线(F34/F35)
+- NEEDS-DESIGN 索引：S19-ND1（分包下载超时 s，NEEDS-DESIGN owner:S19 due:P4-tuning）｜S19-ND2（微信分包/总包体积上限，NEEDS-DESIGN owner:S19 due:P3-platform）
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
@@ -169,7 +175,7 @@ sequenceDiagram
 |------|------|----------|----------|-----------|
 | E1 | 主包超体积 | 主包 > 平台上限（约 4MB） | 构建(F23)报错，拒过审；需拆包/压资源 | 不让上架 |
 | E2 | 分包下载中断（弱网） | `wx.loadSubpackage` fail | 重试计数 +1，重试 <3 自动重；≥3 弹 z=85 | 不无限转圈 |
-| E3 | 下载超时 | 单包下载 > `[PLACEHOLDER]`s 无进度 | 判超时→走 E2 重试逻辑 | 防卡死 |
+| E3 | 下载超时 | 单包下载 > `S19-ND1`s 无进度 | 判超时→走 E2 重试逻辑 | 防卡死 |
 | E4 | 资源缺失（解包缺文件） | 分包内某资源路径错 | 用占位图/静音 + 告警 S25 | 不崩，能玩 |
 | E5 | 分包 md5 校验不符 | 下载资源 checksum ≠ 配置 | 丢弃重下；超次弹失败层 | 防损坏资源 |
 | E6 | 进关时切后台(S20) | onHide 时正在下载 | 暂停下载计时；onShow 续下或重连 | 不重复计费/错乱 |
@@ -206,7 +212,7 @@ sequenceDiagram
 | sub_lv03 | subpackages/lv03 | 4096 | ["map_03","t_poison","t_elec"] | atlas | false | 5 | "e5f6" | ["sub_audio_boss"] |
 | sub_ui_common | subpackages/ui_common | 1024 | ["ui_setting","ui_feedback"] | atlas | true | 2 | "7788" | [] |
 
-> 注：微信主包约 4MB、总包分档以平台当前规范为准（`[PLACEHOLDER]` 具体上限随平台更新）；`priority` 与 `md5` 为 v0.2 新增字段，支持优先级调度与完整性兜底。
+> 注：微信主包约 4MB、总包分档以平台当前规范为准（`S19-ND2` 具体上限随平台更新）；`priority` 与 `md5` 为 v0.2 新增字段，支持优先级调度与完整性兜底。
 
 ---
 
@@ -225,3 +231,78 @@ sequenceDiagram
 | （美术/音频资产） | — | 见各玩法系统 | 经本系统管线压缩分包 | — | 切片见 F34/F35 | — |
 
 > 美术管线(F34)与音频(F35)具体资源由各玩法系统列出，本系统负责格式/分包/校验规范；所有图遵循微信单图 ≤128KB、合图集（atlas）原则。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| pkg_name | string | `subpackage_config.pkg_name` |
+| preload | bool | `subpackage_config.preload` |
+| priority | int | `subpackage_config.priority` |
+| depend_on | string[] | `subpackage_config.depend_on` |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| load_progress | float(0–1) | 下载进度（onProgress） |
+| load_result | enum | success / fail |
+| ready_pkg | string | 已就绪分包名 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S10 / S1 | S19 | `requestLevel(pkg)` | in | 进关请求分包 |
+| S19 | wx | `loadSubpackage` | out | 平台分包下载 |
+| S19 | S23 | 资源就绪回调 | out | 音频资产挂载（F35） |
+| S19 | S25 | `report(缺失/超时)` | out | 告警 |
+| F23（构建） | S19 | 生成 `subpackage_config` | in | 构建期配置 |
+| S20 | S19 | onHide / onShow | in | 切后台暂停/续下下载 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 主包超体积 | 构建报错拒过审 | F23 |
+| E2 | 分包下载中断 | 重试<3 自动；≥3 弹 z=85 | — |
+| E3 | 下载超时 | 判超时走 E2 重试（阈值 `S19-ND1`） | — |
+| E4 | 资源缺失 | 占位图/静音+告警 S25 | S25 |
+| E5 | md5 校验不符 | 丢弃重下；超次弹失败层 | — |
+| E6 | 进关切后台(S20) | 暂停计时；onShow 续下 | S20 |
+| E7 | 重复进关 | 去重/锁 | — |
+| E8 | 预载在流量下 | 仅 WiFi（`preload_wifi_only`） | — |
+| E9 | 存储不足 | 清缓存重试 | — |
+| E10 | 分包配置缺失 | 主包兜底/报错 | — |
+| E11 | 微信 API 失败 | catch→E2 重试 | — |
+| E12 | 进度回退 | 取 max(已见进度) | — |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Idle | 冷启动 | → MainLoading | 加载主包 |
+| MainLoading | 主包就绪 | → Lobby | 进大厅 |
+| MainLoading | 主包失败 | → Fatal | 报错退出 |
+| Fatal | — | → [*] | — |
+| Lobby | 进关请求 | → Checking | 查配置 |
+| Checking | 已加载 | → LocalReady | 直接进入 |
+| Checking | 未加载 | → SubLoading | 拉起 loading |
+| SubLoading | 下载中 | → Progress | — |
+| Progress | 成功 | → SubReady | — |
+| Progress | 失败 | → Retry | — |
+| Retry | 重试<3 | → SubLoading | 重试 |
+| Retry | 次数≥3 | → FailUI | 弹 z=85 |
+| FailUI | 用户重试 | → SubLoading | — |
+| FailUI | 用户退出 | → Lobby | 回大厅 |
+| SubReady / LocalReady | — | → InLevel | 进入 S1 |
+| InLevel | — | → [*] | — |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯配置/逻辑：`subpackage_config` 体积/优先级等为 config 层（非 balance），运行时由 `config/subpackage_config.json` 持有。开放调优项见 §0 索引：
+- `S19-ND1` 分包下载超时(s) — NEEDS-DESIGN (owner: S19, due: P4-tuning)
+- `S19-ND2` 微信分包/总包体积上限 — NEEDS-DESIGN (owner: S19, due: P3-platform)
+
+## 6. 冲突与待裁定
+
+### 6.1 冲突汇总
+本系统无 DO 待裁定冲突项；开放调优项见 §0 索引 / §5.6。分包体积上限（`S19-ND2`）依赖微信平台当前规范，待平台口径确定后由工程落地 `config/subpackage_config.json`。

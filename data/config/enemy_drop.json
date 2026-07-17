@@ -1,0 +1,17 @@
+{
+  "rate_light": 0.3,
+  "min_light": 1.0,
+  "max_light": 3.0,
+  "rate_heavy": 0.25,
+  "min_heavy": 1.0,
+  "max_heavy": 4.0,
+  "rate_air": 0.3,
+  "min_air": 1.0,
+  "max_air": 3.0,
+  "rate_magic_immune": 0.3,
+  "min_magic_immune": 1.0,
+  "max_magic_immune": 3.0,
+  "boss_rate": 1.0,
+  "boss_min": 5.0,
+  "boss_max": 15.0
+}

@@ -1,13 +1,19 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S27 客服反馈系统 (Feedback System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：增强 / P2 · 关联 F 码：F41 · 关联：SYSTEM_BREAKDOWN §S27 · GDD §8（适配）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：模块表 5 行 + 4 异常 + 单表 5 字段）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F41
+- 关联系统：S10（大厅入口）、S18（pending_feedback 本地存）、S25（隐私脱敏协同）、运营端（上报目标）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：`wx.chooseImage`；S18 本地存；网络上报通道
+- NEEDS-DESIGN 索引：S27-ND1（max_len，NEEDS-DESIGN owner:S27 due:P4-tuning）｜S27-ND2（screenshot_max_kb，NEEDS-DESIGN owner:S27 due:P4-tuning）｜S27-ND3（screenshot_size，NEEDS-DESIGN owner:S27 due:P4-tuning）｜S27-ND4（submit_cooldown，NEEDS-DESIGN owner:S27 due:P4-tuning）｜S27-ND5（pending_max，NEEDS-DESIGN owner:S27 due:P4-tuning）
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
@@ -165,29 +171,29 @@ sequenceDiagram
 |------|------|----------|--------|------|
 | enable | bool | true | true | 总开关 |
 | types | string[] | 类型列表 | ["bug","suggest","other"] | 分类 |
-| max_len | int | 100–2000 | `[PLACEHOLDER]` | 文本上限 **调优杆** |
+| max_len | int | 100–2000 | S27-ND1 · NEEDS-DESIGN (owner: S27, due: P4-tuning) | 文本上限 **调优杆** |
 | attach_screenshot | bool | true | true | 是否附截图 |
-| screenshot_max_kb | int | 50–2000 | `[PLACEHOLDER]` | 截图体积上限(KB) **调优杆** |
-| screenshot_size | int | 200–1000 | `[PLACEHOLDER]` | 截图边长上限(px) **调优杆** |
+| screenshot_max_kb | int | 50–2000 | S27-ND2 · NEEDS-DESIGN (owner: S27, due: P4-tuning) | 截图体积上限(KB) **调优杆** |
+| screenshot_size | int | 200–1000 | S27-ND3 · NEEDS-DESIGN (owner: S27, due: P4-tuning) | 截图边长上限(px) **调优杆** |
 | attach_context | bool | true | true | 自动附上下文(关/版本/设备) |
 | report_target | string | 运营端 | "ops" | 上报目标 |
-| submit_cooldown | int | 0–60 | `[PLACEHOLDER]` | 提交冷却(s) **调优杆** |
-| pending_max | int | 1–50 | `[PLACEHOLDER]` | 待补报队列上限 **调优杆** |
+| submit_cooldown | int | 0–60 | S27-ND4 · NEEDS-DESIGN (owner: S27, due: P4-tuning) | 提交冷却(s) **调优杆** |
+| pending_max | int | 1–50 | S27-ND5 · NEEDS-DESIGN (owner: S27, due: P4-tuning) | 待补报队列上限 **调优杆** |
 
 ### 3.2 示例数据（多行）
-**示例 A：默认（全开，上限 `[PLACEHOLDER]`）**
+**示例 A：默认（全开，上限 NEEDS-DESIGN）**
 ```json
-{ "enable": true, "types": ["bug","suggest","other"], "max_len": "[PLACEHOLDER]",
-  "attach_screenshot": true, "screenshot_max_kb": "[PLACEHOLDER]", "screenshot_size": "[PLACEHOLDER]",
-  "attach_context": true, "report_target": "ops", "submit_cooldown": "[PLACEHOLDER]", "pending_max": "[PLACEHOLDER]" }
+{ "enable": true, "types": ["bug","suggest","other"], "max_len": "S27-ND1",
+  "attach_screenshot": true, "screenshot_max_kb": "S27-ND2", "screenshot_size": "S27-ND3",
+  "attach_context": true, "report_target": "ops", "submit_cooldown": "S27-ND4", "pending_max": "S27-ND5" }
 ```
 **示例 B：轻量（关截图、短文本）**
 ```json
-{ "enable": true, "types": ["bug","suggest"], "max_len": "[PLACEHOLDER]",
-  "attach_screenshot": false, "screenshot_max_kb": "[PLACEHOLDER]", "screenshot_size": "[PLACEHOLDER]",
-  "attach_context": true, "report_target": "ops", "submit_cooldown": "[PLACEHOLDER]", "pending_max": "[PLACEHOLDER]" }
+{ "enable": true, "types": ["bug","suggest"], "max_len": "S27-ND1",
+  "attach_screenshot": false, "screenshot_max_kb": "S27-ND2", "screenshot_size": "S27-ND3",
+  "attach_context": true, "report_target": "ops", "submit_cooldown": "S27-ND4", "pending_max": "S27-ND5" }
 ```
-> `max_len`/`screenshot_*`/`submit_cooldown`/`pending_max` 标 `[PLACEHOLDER]`，按运营负载与合规裁定；v0.1 写死的 `max_len:500` 已改为调优杆。
+> `max_len`/`screenshot_*`/`submit_cooldown`/`pending_max` 标 `S27-ND1`~`S27-ND5`（NEEDS-DESIGN，见 §0 索引 / §5.6）；v0.1 写死的 `max_len:500` 已改为调优杆。
 
 ---
 
@@ -207,3 +213,76 @@ sequenceDiagram
 | 成功 toast | UI 九宫 | 1 | 源 64×64（拉伸 300×56） | PNG-8 | 九宫圆角 | z=30 提示 |
 
 > 表单样式复用通用 UI 组件库；截图用微信 `chooseImage` 能力，本系统只声明体积/边长上限与缩略底切片。所有切片遵循微信单图 ≤128KB、合图集原则（见 S19 F34）。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| max_len | int | `feedback_config.max_len`（S27-ND1） |
+| screenshot_max_kb | int | `feedback_config.screenshot_max_kb`（S27-ND2） |
+| screenshot_size | int | `feedback_config.screenshot_size`（S27-ND3） |
+| submit_cooldown | int | `feedback_config.submit_cooldown`（S27-ND4） |
+| pending_max | int | `feedback_config.pending_max`（S27-ND5） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| ticket | object | 工单（含脱敏上下文） |
+| pending_feedback | array | 本地待补报队列 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S10 / 设置 | S27 | 开反馈页 | in | 入口 |
+| S27 | S18 | `save(pending_feedback)` | out | 无网本地存 |
+| S27 | Net（运营端） | `report(ticket)` | out | 上报 |
+| S27 | wx | `chooseImage` | out | 截图 |
+| S27 | S25 | 脱敏协同 | out | 隐私过滤 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 空提交 | 按钮置灰+提示 | — |
+| E2 | 上报失败 | 存本地 S18+待补报 | S18 |
+| E3 | 截图超限 | 压缩/提示重选 | — |
+| E4 | 文本超长 | 截断+提示 | — |
+| E5 | 截图权限拒绝 | 静默跳过截图 | wx |
+| E6 | 连点提交 | 防抖单锁 | — |
+| E7 | 类型未选 | 高亮+禁用 | — |
+| E8 | 上下文采集失败 | 附可得字段留空 | — |
+| E9 | 微信无关 | 本地存可用 | — |
+| E10 | 待补报队列满 | 环形覆盖最旧 | — |
+| E11 | 提交中切后台 | 改本地存+回前台补报 | S20/S18 |
+| E12 | 敏感内容 | 上报前脱敏 | S25 |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Closed | 点入口 | → Open | — |
+| Open | 未选类型 | → Selecting | — |
+| Selecting | 选类型 | → Typing | — |
+| Typing | 可加截图 | → Attaching | — |
+| Attaching | 文本非空 | → SubmitReady | — |
+| Attaching | 文本空 | → Blocked | — |
+| Blocked | 输入文本 | → SubmitReady | — |
+| SubmitReady | 点提交 | → Submitting | — |
+| Submitting | 上报成功/本地存 | → Success | — |
+| Submitting | 上报失败 | → FailRetry | 本地存 |
+| Success / FailRetry | — | → Closed | toast 后回大厅 |
+| Open | 点返回 | → Closed | 不提交 |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯配置/逻辑；文本/截图/冷却/队列上限均为 config 层（非 balance）调优杆，由 `config/feedback_config.json` 持有。开放调优项见 §0 索引：
+- `S27-ND1` max_len — NEEDS-DESIGN (owner: S27, due: P4-tuning)
+- `S27-ND2` screenshot_max_kb — NEEDS-DESIGN (owner: S27, due: P4-tuning)
+- `S27-ND3` screenshot_size — NEEDS-DESIGN (owner: S27, due: P4-tuning)
+- `S27-ND4` submit_cooldown — NEEDS-DESIGN (owner: S27, due: P4-tuning)
+- `S27-ND5` pending_max — NEEDS-DESIGN (owner: S27, due: P4-tuning)
+
+## 6. 冲突与待裁定
+
+### 6.1 冲突汇总
+本系统无 DO 待裁定冲突项；开放调优项见 §0 索引 / §5.6。

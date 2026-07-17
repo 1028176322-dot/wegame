@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "status_effect_config",
+  "type": "object",
+  "properties": {
+    "armor_break_duration": {
+      "type": "number"
+    },
+    "armor_break_val": {
+      "type": "number"
+    },
+    "burn_dps": {
+      "type": "number"
+    },
+    "burn_duration": {
+      "type": "number"
+    },
+    "burn_splash": {
+      "type": "number"
+    },
+    "chain_count": {
+      "type": "number"
+    },
+    "chain_range": {
+      "type": "number"
+    },
+    "conductive_duration": {
+      "type": "number"
+    },
+    "conductive_k": {
+      "type": "number"
+    },
+    "corrosion_duration": {
+      "type": "number"
+    },
+    "corrosion_max_stack": {
+      "type": "number"
+    },
+    "corrosion_val": {
+      "type": "number"
+    },
+    "headwind_duration": {
+      "type": "number"
+    },
+    "headwind_max_stack": {
+      "type": "number"
+    },
+    "headwind_slow": {
+      "type": "number"
+    },
+    "infect_dot_dps": {
+      "type": "number"
+    },
+    "infect_dot_dur": {
+      "type": "number"
+    },
+    "infect_radius": {
+      "type": "number"
+    },
+    "knockback_kb_dist": {
+      "type": "number"
+    },
+    "knockback_stun": {
+      "type": "number"
+    },
+    "poison_dps": {
+      "type": "number"
+    },
+    "poison_duration": {
+      "type": "number"
+    },
+    "slow_duration": {
+      "type": "number"
+    },
+    "slow_k": {
+      "type": "number"
+    },
+    "vuln_duration": {
+      "type": "number"
+    },
+    "vuln_k": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

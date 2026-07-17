@@ -1,0 +1,12 @@
+{
+  "firstkill_target": 1.0,
+  "combo_target": 20.0,
+  "lv10_target": 10.0,
+  "zeroleak_target": 1.0,
+  "towerclear_target": 7.0,
+  "firstkill_reward": 10.0,
+  "combo_reward": 50.0,
+  "lv10_reward": 100.0,
+  "zeroleak_reward": 200.0,
+  "towerclear_reward": 300.0
+}

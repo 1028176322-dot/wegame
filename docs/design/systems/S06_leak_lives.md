@@ -1,6 +1,8 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S6 漏怪 / 生命系统 (Leak / Lives System)
 
+## 0. 元数据头
+
 > 归属域：A 核心战斗域 · 层级/优先级：MVP / P0 · 关联 F 码：F8 · 关联：GDD §5.4；SYSTEM_BREAKDOWN §S6
 > 状态：v0.2-detailed · 日期 2026-07-17
 > 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
@@ -132,18 +134,18 @@ sequenceDiagram
 
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 |
 |---|---|---|---|---|
-| start_lives | int | 1–50 | `[PLACEHOLDER]` | 初始命数（GDD：`[PLACEHOLDER]` 20）。**调优杆**：容错与压力 |
-| normal_leak_cost | int | 1–10 | `[PLACEHOLDER]` | 普通怪漏扣。**调优杆**：漏怪代价 |
-| boss_leak_cost | int | 1–20 | `[PLACEHOLDER]` | Boss 漏扣（GDD：`[PLACEHOLDER]` 5）。**调优杆**：Boss 风险 |
+| start_lives | int | 1–50 | `value_ref: balance/S06_leak_lives.json#sys_start_lives` | 初始命数（GDD 初值 20）。**调优杆**：容错与压力 |
+| normal_leak_cost | int | 1–10 | `value_ref: balance/S06_leak_lives.json#sys_normal_leak_cost` | 普通怪漏扣。**调优杆**：漏怪代价 |
+| boss_leak_cost | int | 1–20 | `value_ref: balance/S06_leak_lives.json#sys_boss_leak_cost` | Boss 漏扣（GDD 初值 5）。**调优杆**：Boss 风险 |
 | tutorial_lock | bool | true/false | true | 引导局锁 Lives（首波保送） |
 | fail_on_zero | bool | true/false | true | Lives=0 即败 |
-| meta_lives_bonus | int | 0–20 | `[PLACEHOLDER]` | 元进度永久 +Lives（S11，可空） |
+| meta_lives_bonus | int | 0–20 | `value_ref: balance/S06_leak_lives.json#sys_meta_lives_bonus` | 元进度永久 +Lives（S11/S29，可空） |
 
 **多行示例数据（CSV；数值列 `[PLACEHOLDER]` 为待调优占位）**
 
 ```csv
 start_lives,normal_leak_cost,boss_leak_cost,tutorial_lock,fail_on_zero,meta_lives_bonus
-[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],true,true,[PLACEHOLDER]
+value_ref:balance/S06_leak_lives.json#sys_start_lives,value_ref:balance/S06_leak_lives.json#sys_normal_leak_cost,value_ref:balance/S06_leak_lives.json#sys_boss_leak_cost,true,true,value_ref:balance/S06_leak_lives.json#sys_meta_lives_bonus
 ```
 
 > 说明：单例全局配置（一行）；所有 `[PLACEHOLDER]` 须经试玩调优，禁止硬编码。
@@ -161,3 +163,75 @@ start_lives,normal_leak_cost,boss_leak_cost,tutorial_lock,fail_on_zero,meta_live
 | 震屏（内部） | — | — | — | 由 S23 统一，无独立资源 |
 
 > 红闪/震屏与打击感合并见 S23；失败演出 F40 暂不做。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| start_lives | int | `lives_config.start_lives`（本系统 §3） |
+| normal_leak_cost / boss_leak_cost | int | `lives_config.*`（本系统 §3） |
+| meta_lives_bonus | int | `lives_config.meta_lives_bonus`（S11/S29 元进度） |
+| enemy_reach_end | event | S1 终点回调 |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| lives_remaining | int | 当前命数（≥0） |
+| leak_event | event | 红闪 + 震屏（→S7/S23） |
+| fail_settle | event | Lives=0 → S8 失败结算 |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S1 | S6 | `onEnemyReachEnd(enemy)` | in | 漏怪回调 |
+| S6 | S7 | `showLeakFlash()` | out | 红闪 + 震屏 |
+| S6 | S5 | `freezeBattle()` | out | 冻结战斗 |
+| S6 | S8 | `onFailSettle()` | out | 失败结算 |
+| S6 | S9 | `onTutorialLeak()` | out | 引导局不扣，记完成度 |
+| S9 | S6 | `isTutorialLock()` | in | 引导局判定 |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 切后台 onHide(S20) | 暂停帧到达的漏怪事件丢弃 | S20 |
+| E02 | Lives 存档损坏(S18) | 重置 start_lives + 记 S25 | S18/S25 |
+| E03 | 同帧多怪到终点 | 累加扣减；首次 Lives==0 触发失败，加锁防重入 | S6 |
+| E04 | `boss_leak_cost` > 剩余 Lives | 直接失败，不出现负 Lives | S6 |
+| E05 | `start_lives`=0 | 钳制最小 1 或开局即败 | S24 |
+| E06 | `normal_leak_cost`=0 | 告警 S25，仍运行 | S24/S25 |
+| E07 | `lives_config` 缺 | 默认(start=20, normal=1, boss=5) | S6 |
+| E08 | `fail_on_zero` 缺 | 默认 true | S6 |
+| E09 | 胜负同帧竞态 | 胜利(全清)优先；漏怪事件作废 | S8 |
+
+### 5.5 状态转换表（自 §2.2 stateDiagram-v2）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Active | 开局 Lives=start_lives | → Active | 初始化 |
+| Active | 漏怪(Lives>0) | → Active | 扣减 + 红闪 |
+| Active | 引导局漏怪(tutorial_lock) | → Active | 不扣，记 S9 |
+| Active | Lives==0 | → Failed | 冻结战斗 → S8 失败结算 |
+| Failed | S8 失败结算 | → [*] | 退出本局 |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| sys_start_lives / sys_normal_leak_cost / sys_boss_leak_cost / sys_meta_lives_bonus | balance/S06_leak_lives.json |
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| 元进度 +Lives 联动 | `sys_meta_lives_bonus` 初值 0，现**未接** S29 `unlock_lives` 永久加成（effect_value 未定） | 是否启用 S29 永久 +Lives 及其 effect_value | S29（B 域，本 A 域改造不动） |
+
+> 其余字段无跨系统冲突；`tutorial_lock=true`/`fail_on_zero=true` 为已定布尔默认；数值初值全部锁定于 `balance/S06_leak_lives.json`（4 个 param_id），无 `NEEDS-DESIGN`（本 A 域范围）。

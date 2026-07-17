@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "hud_config",
+  "type": "object",
+  "properties": {
+    "design_height": {
+      "type": "number"
+    },
+    "design_width": {
+      "type": "number"
+    },
+    "min_touch": {
+      "type": "number"
+    },
+    "pause_confirm": {
+      "type": "number"
+    },
+    "safe_margin": {
+      "type": "number"
+    },
+    "show_lives_in_top": {
+      "type": "number"
+    },
+    "speed_2x_free": {
+      "type": "number"
+    },
+    "top_bar_h": {
+      "type": "number"
+    },
+    "vibrate_on_leak": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

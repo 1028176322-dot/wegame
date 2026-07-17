@@ -1,0 +1,7 @@
+{
+  "max_len": 500.0,
+  "screenshot_max_kb": 500.0,
+  "screenshot_size": 600.0,
+  "submit_cooldown": 10.0,
+  "pending_max": 20.0
+}

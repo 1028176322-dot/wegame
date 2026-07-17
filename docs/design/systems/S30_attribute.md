@@ -237,21 +237,21 @@ sequenceDiagram
 | data_type | enum | int/float/enum | float | 数值类型 |
 | unit | enum | point/px/per_s/HP/级 | point | 单位（飘字/图鉴用） |
 | min | float | ≥0 | 0 | 下限（钳制，非负铁律） |
-| max | float | >min | `[PLACEHOLDER]` | 上限（钳制） |
+| max | float | >min | `NEEDS-DESIGN (owner: S30, due: P4-tuning)`; 结构硬上限见于 value_ref | 上限（钳制） |
 | default | float | [min,max] | 0 | 缺省值 |
 | owner | enum | tower/enemy | tower | 归属（塔/敌） |
 | icon_ref | string | 资源 id | — | 属性图标（见 §4） |
 
-**多行示例（CSV；数值列 `[PLACEHOLDER]` 为初值待调优）**
+**多行示例（CSV；数值初值映射至 balance JSON，max 列待调优）**
 
 ```csv
 attr_id,display_name,data_type,unit,min,max,default,owner,icon_ref
-dmg,伤害,float,point,0,[PLACEHOLDER],0,tower,icon_attr_dmg
-range,范围,float,px,0,[PLACEHOLDER],0,tower,icon_attr_range
-atk_speed,攻速,float,per_s,0.1,[PLACEHOLDER],0,tower,icon_attr_atkspd
-projectile_speed,弹速,float,px_s,50,[PLACEHOLDER],0,tower,icon_attr_proj
-hp,生命,float,HP,1,[PLACEHOLDER],1,enemy,icon_attr_hp
-move_speed,移速,float,px_s,20,[PLACEHOLDER],0,enemy,icon_attr_movespd
+dmg,伤害,float,point,0,value_ref:balance/S30_attribute.json#attr_dmg_max,0,tower,icon_attr_dmg
+range,范围,float,px,0,value_ref:balance/S30_attribute.json#attr_range_max,0,tower,icon_attr_range
+atk_speed,攻速,float,per_s,value_ref:balance/S30_attribute.json#attr_atk_speed_min,value_ref:balance/S30_attribute.json#attr_atk_speed_max,0,tower,icon_attr_atkspd
+projectile_speed,弹速,float,px_s,value_ref:balance/S30_attribute.json#attr_projectile_speed_min,value_ref:balance/S30_attribute.json#attr_projectile_speed_max,0,tower,icon_attr_proj
+hp,生命,float,HP,value_ref:balance/S30_attribute.json#attr_hp_min,value_ref:balance/S30_attribute.json#attr_hp_max,1,enemy,icon_attr_hp
+move_speed,移速,float,px_s,value_ref:balance/S30_attribute.json#attr_move_speed_min,value_ref:balance/S30_attribute.json#attr_move_speed_max,0,enemy,icon_attr_movespd
 ```
 
 ### 3.2 表 `damage_armor_matrix`（伤害类型 × 护甲类型 克制矩阵 · 全组合 4×5=20）
@@ -354,10 +354,10 @@ step,mult_name,source_system,formula,stack_semantic
 **CSV（初值）**
 ```csv
 scale_dim,target_attr,base,per_step_growth,max,source_ref
-level,hp,1.0,1.10,[PLACEHOLDER],S32
-level,move_speed,1.0,1.03,[PLACEHOLDER],S32
-wave,hp,1.0,1.06,[PLACEHOLDER],S04
-wave,move_speed,1.0,1.02,[PLACEHOLDER],S04
+level,hp,1.0,1.10,value_ref:balance/S30_attribute.json#attr_enemy_hp_level_scalar_lv20,S32
+level,move_speed,1.0,1.03,value_ref:balance/S30_attribute.json#attr_enemy_speed_level_scalar_lv20,S32
+wave,hp,1.0,1.06,value_ref:balance/S30_attribute.json#attr_enemy_hp_wave_scalar,S04
+wave,move_speed,1.0,1.02,value_ref:balance/S30_attribute.json#attr_enemy_speed_wave_scalar,S04
 ```
 
 > 说明：`enemy_eff.hp = base_hp(S04) × level_scalar(S32) × wave_scalar(S04)`，S32 关卡系统尚未设计（见 NEEDS-DESIGN-3）。`special_behavior` 枚举对齐 S04 `boss_mechanic`(null/speedup/heal_cut) + `enemy_type`(normal/air/boss/special)。
@@ -393,31 +393,101 @@ wave,move_speed,1.0,1.02,[PLACEHOLDER],S04
 
 ---
 
-## 5. 依赖 / 边界 / 冲突说明（务必关注）
+## 5. 实现契约
 
-### 5.1 依赖
-- **S02 建塔**：消费 `attribute_def` + `growth` + 套用 `player_level_mult`(单行)。
-- **S29 等级**：提供 `player_level_mult` 单行查表值（不累加）。
-- **S28 技能**：提供 `skill_mod` 各乘子。
-- **S33 状态**（**未设计**）：提供 `buff_mod`，当前占位默认 1.0。
-- **S04 波次 / S31 敌人 / S32 关卡**（S32 **未设计**）：提供敌属性与缩放因子。
-- **S05 战斗**：消费合成后 `tower_effective` + 查 `damage_armor_matrix`/`armor_type_def`。
-- **S16 图鉴 / S07 HUD**：消费属性展示与飘字色板。
-- **S24 防作弊**：所有极值/异常兜底。
+### 5.1 输入数据结构
 
-### 5.2 冲突与一致性（已识别，需主理人裁定收口）
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| base_attr | TowerAttr | S2 tower_config（Lv1 基础值） |
+| cultivate_level | int | S2 养塔等级 |
+| player_level | int | S29 玩家等级 |
+| player_level_mult | float | S29 `player_level_config[level].bonus`（单行不累加） |
+| skill_mod | float | S28 被动/主动技能乘子集 |
+| buff_mod | float | S33 状态乘子（默认 1.0；S33 未设计前占位） |
+| damage_type | enum | 塔 type 映射（S30 枚举 physical/magic/poison/control） |
+| enemy_armor_type | enum | 敌 armor_type（S30 枚举 none/light/heavy/magic_immune/air） |
 
-| # | 冲突点 | 现状 | S30 裁定 | 需修订方 |
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| EffectiveTowerAttr | {dmg, atk_speed, range, projectile_speed, damage_type} | 塔最终有效属性（经合成 + 钳制） |
+| EnemyEffectiveAttr | {hp, armor_type, move_speed} | 敌最终有效属性（派生 + 缩放） |
+| counter_coefficient | float | 克制系数（0/0.5/1.0/1.5） |
+| armor_reduce | float | 护甲减伤%（0–0.9） |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
 |---|---|---|---|---|
-| C1 | `magic_vs_magic_immune` 系数 | GDD §5.6 称魔法塔「魔免克星」；`balance/S05_combat.md` 已写 `=1.5` | **=0.0（魔免免疫魔法，铁律）**，与 GDD §5.5「魔免需物理塔」一致 | 改 GDD §5.6 魔法塔描述为「无视护甲真伤塔（不克魔免）」；改 `balance/S05_combat.md` 该值为 0.0 |
-| C2 | `armor_type` 枚举 | S04 `wave_config.armor_type` = none/light/heavy/magic_immune/**poison**；S30 要求 = none/light/heavy/magic_immune/**air** | S30 权威枚举含 **air**（替换 poison）；poison 降为 damage_type/status，非护甲类 | 改 S04 枚举；`balance/S05_combat.md` 的 `combat_armor_poison` 删除或改 air |
-| C3 | electric 对空克制 | S28/S05 有 `electric_vs_air=1.5`；S30 仅 4 damage_type（无 electric） | electric 归类 `physical`（造成伤害）；对空 ×1.5 由 **S02 逐塔克制覆盖** `t_electric_vs_air` 实现，不进通用矩阵 | S02 增加逐塔克制覆盖字段；或扩展 damage_type 枚举（需主理人定） |
-| C4 | 塔 `armor_type` 语义 | 任务列塔属性含 `armor_type` | TD 中敌不攻击塔，塔 `armor_type` 恒 = none（保留字段）；战斗用 `tower.damage_type` 查矩阵 | 澄清（见 NEEDS-DESIGN-1） |
+| S2 | S30 | `getTowerEffectiveAttr(tower_id, level)` | in | 建塔/养塔时合成塔属性 |
+| S29 | S30 | `getPlayerLevelMult(level)` | in | 提供等级倍率（单行不累加） |
+| S28 | S30 | `applySkillMod(tower_id, mod)` | out | 技能乘子写入 |
+| S33 | S30 | `applyBuffMod(target_id, mod)` | out | 状态乘子写入（S33 接入后） |
+| S5 | S30 | `queryCounterMatrix(damage_type, armor_type)` | in | 查询克制系数 |
+| S5 | S30 | `queryArmorReduce(armor_type)` | in | 查询护甲减伤 |
+| S30 | S5 | `getEffectiveTowerAttr(tower_id)` | out | 输出合成后塔属性供伤害结算 |
+| S30 | S24 | `reportSuspect(param_id, clamped_val, original_val)` | out | 越界报可疑 |
+| S4/S31 | S30 | `deriveEnemyAttr(enemy_id, wave)` | in | 敌属性派生 |
 
-### 5.3 NEEDS-DESIGN 项（本系统未决，待主理人/相关系统裁定）
+### 5.4 错误码表
 
-1. **ND-1（塔 armor_type 语义）**：任务将 `armor_type` 列入塔属性，但本 TD 敌不攻击塔。建议塔 `armor_type` 保留为保留字段恒 = none，战斗使用 `tower.damage_type` 查矩阵。需确认是否仍要该字段或改名 `damage_type`。
-2. **ND-2（S33 状态系统未设计）**：`buff_mod` 乘子来源系统 S33 尚未存在。当前占位默认 1.0；S33 设计后须回写乘子接口与可叠加语义（避免与 skill_mod 双重叠加）。
-3. **ND-3（S32 关卡系统未设计）**：敌属性 `level_scalar` 由 S32 提供，当前仅定义缩放字段与初值，S32 落地后须回填 `per_step_growth`/`max` 真值。
-4. **ND-4（electric 对空归类，见 C3）**：在 S02 加逐塔克制覆盖，或扩展 damage_type 枚举含 electric，二选一。
-5. **ND-5（钳制上限初值 `[PLACEHOLDER]`）**：`attribute_def.max` 各属性上限需试玩调优后填实（见 `balance/S30_attribute.md` 已给建议区间）。
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 属性为负 | `clamp(v, 0, max)`，负值置 0 | S24 |
+| E02 | 属性溢出超 max | 钳制上限；报 S24 可疑 | S24 |
+| E03 | 除零（`armor_reduce` 作分母） | 分母保护默认 1.0（无减伤） | S24 |
+| E04 | 矩阵缺键 | 系数默认 1.0 + S25 告警 | S25 |
+| E05 | 护甲类型不在枚举 | 降级 `none`（无减免） | S25 |
+| E06 | 伤害类型不在枚举 | 降级 `physical` | S25 |
+| E07 | 等级加成缺失 | 用 level=1 行（倍率 1.0） | S29/S24 |
+| E08 | 等级加成越界 | 钳制合法区间；报 S24 | S24 |
+| E09 | skill_mod 缺失 | 默认 1.0（无修正） | S28 |
+| E10 | buff_mod 缺失（S33 未接入） | 默认 1.0（无修正） | S33 |
+| E11 | 敌 HP ≤0 | 钳制 `attr_hp_min=1` | S04/S24 |
+| E12 | NaN/Inf 任何乘子 | 钳制到 [min,max]；报 S24 | S24 |
+
+### 5.5 状态转换表（自 §2.1 模块表 / §2.2 合成流程）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Idle | 建塔/养塔(S2) | → Synthesizing | base × growth^level |
+| Synthesizing | 等级变更(S29) | → LevelApply | × player_level_mult(单行) |
+| LevelApply | 技能变更(S28) | → SkillApply | × skill_mod |
+| SkillApply | 状态变更(S33) | → BuffApply | × buff_mod |
+| BuffApply | 钳制 | → Clamped | clamp(min, max)；越界报 S24 |
+| Clamped | 已完成 | → Ready | 输出 EffectiveTowerAttr |
+| Ready | 命中结算(S5) | → QueryMatrix | 查 damage_armor_matrix |
+| QueryMatrix | 查护甲减伤 | → QueryArmor | 查 armor_type_def |
+| QueryArmor | 系数就绪 | → Done | 输出 counter_coefficient + armor_reduce |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| attr_dmg_max / attr_dmg_min / attr_range_max / attr_range_min / attr_atk_speed_max / attr_atk_speed_min / attr_projectile_speed_max / attr_projectile_speed_min / attr_hp_max / attr_hp_min / attr_move_speed_max / attr_move_speed_min | balance/S30_attribute.json |
+| attr_growth_base | balance/S30_attribute.json |
+| attr_lvl_dmg_mult_lv1 / attr_lvl_dmg_mult_lv20 / attr_lvl_range_mult_lv1 / attr_lvl_range_mult_lv20 / attr_lvl_atkspd_mult_lv1 / attr_lvl_atkspd_mult_lv20 | balance/S30_attribute.json |
+| attr_cm_physical_none / attr_cm_physical_light / attr_cm_physical_heavy / attr_cm_physical_magic_immune / attr_cm_physical_air / attr_cm_magic_* / attr_cm_poison_* / attr_cm_control_* | balance/S30_attribute.json |
+| attr_armor_none_reduce / attr_armor_light_reduce / attr_armor_heavy_reduce / attr_armor_magic_immune_reduce / attr_armor_air_reduce | balance/S30_attribute.json |
+| attr_enemy_hp_level_scalar_lv1 / attr_enemy_hp_level_scalar_lv20 / attr_enemy_hp_wave_scalar / attr_enemy_speed_level_scalar_lv1 / attr_enemy_speed_level_scalar_lv20 / attr_enemy_speed_wave_scalar | balance/S30_attribute.json |
+| attr_skill_mod_default / attr_buff_mod_default | balance/S30_attribute.json |
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C1: `magic_vs_magic_immune` 系数 | S30 裁定 = **0.0**（魔免免疫魔法，铁律），与 GDD §5.6「魔法塔=魔免克星」冲突 | 改 GDD §5.6 魔法塔描述为「无视护甲真伤塔（不克魔免）」；改 balance/S05_combat.md 该值为 0.0 | DO |
+| C2: `armor_type` 枚举 poison→air | S30 权威枚举 = none/light/heavy/magic_immune/**air**（替换 S04 旧 `poison`） | 改 S04 `wave_config.armor_type` 枚举；`balance/S05_combat.md` 的 `combat_armor_poison` 删除或改 air | S04（A 域） |
+| C3: electric 对空克制 | electric 归类 `physical`，对空 ×1.5 由 S02 逐塔克制覆盖 `t_electric_vs_air` | S02 增加逐塔克制覆盖字段，或扩展 damage_type 枚举含 electric（二选一） | S02（A 域）/ DO |
+| C4: 塔 `armor_type` 语义 | TD 中敌不攻击塔，塔 `armor_type` 恒 = none（保留字段） | 是否保留该字段或改名 `damage_type` | DO / S02 |
+| ND-1: 塔 armor_type 字段 | 保留为 none（保留字段），战斗使用 `tower.damage_type` | 确认是否仍要该字段或改名 | DO |
+| ND-2: S33 状态系统未建 | `buff_mod` 占位 1.0，S33 设计后须回写乘子接口 | S33 落地后回填真值 | S33（A 域） |
+| ND-3: S32 关卡系统未建 | 敌 `level_scalar` 初值已填，S32 落地后回填 `per_step_growth`/`max` | S32 定稿后校准 | S32（A 域） |
+| ND-4: electric 归类 | S02 加逐塔克制覆盖，或扩展 damage_type 枚举（见 C3） | 二选一裁定 | DO / S02 |
+| ND-5: 钳制上限初值 | `attr_dmg_max` 等 6 项仍为 `NEEDS-DESIGN (owner: S30, due: P4-tuning)`，balance 标记 [P] | 试玩调优后填实（结构硬上限 99999/9999999 已设） | S30（试玩后） |
+
+> 所有 `[PLACEHOLDER]` 已替换为 `value_ref` 或 `NEEDS-DESIGN`；克制矩阵权威值 4×5=20 项已对齐 GDD §5.6/§5.7/§5.5；枚举已按 S30 权威对齐（N5）。

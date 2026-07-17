@@ -329,16 +329,111 @@ headwind,逆风惩罚,debuff,"S28_wind_passive2",move_speed,"{headwind_slow:0.15
 
 ---
 
-## 5. 待裁定 / NEEDS-DESIGN 汇总
+## 5. 实现契约
 
-| # | 项 | 状态 | 说明 |
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| status_id | string | `status_effect_config.status_id`（本系统） |
+| strength | float | `status_effect_config.strength_init`（本系统 → balance） |
+| duration | float | `status_effect_config.duration` |
+| stack_policy | enum | `status_effect_config.stack_policy` |
+| stack_cap | int | `status_effect_config.stack_cap`（仅 stack_cap_N 用） |
+| source_entity | Entity | 施加者（塔/技能 id） |
+| target_entity | Entity | 受击单位（敌/塔） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| status_instance | StatusInstance | 状态实例（含剩余时长/层数/强度） |
+| buff_mod_update | BuffMod | `{move_speed_mult, dmg_taken_mult, armor_mult, ...}` 更新 → S30 |
+| dot_tick | {dmg:float, target:Entity} | DoT 每帧扣血 → S5 |
+| visual_update | {icon_list, tint, particle} | UI 表现更新 → S31 |
+| clear_event | event | 状态移除/到期/净化 → S5/S23 |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S5 | S33 | `applyStatus(status_id, strength, dur, src, target)` | in | 命中挂状态（slow/poison/chain） |
+| S28 | S33 | `applyStatus(status_id, strength, dur, src, target)` | in | 技能挂状态（破甲/易伤/导电/腐蚀/逆风） |
+| S33 | S30 | `updateBuffMod(target_id, buff_mod)` | out | 更新属性乘子 |
+| S30 | S33 | `getBuffMod(target_id)` | in | 查询当前 buff_mod 值 |
+| S33 | S5 | `doDotDamage(target, dmg)` | out | DoT 扣血回调 |
+| S33 | S31 | `updateStatusIcons(target, icon_list)` | out | 状态图标栏刷新 |
+| S33 | S23 | `playStatusEffect(target, fx_id)` | out | 状态粒子/染色表现 |
+| S33 | S33 | `clearStatus(target, filter)` | internal | 死亡清全部/净化清 buff |
+| S33 | S33 | `infectSpread(source, radius)` | internal | 传染触发（中毒怪死亡） |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
 |---|---|---|---|
-| 1 | **S30 属性合成（含 `buff_mod(S33)`）** | NEEDS-DESIGN | 文件不存在；本系统 §2.7 已定义契约，S30 须实现并消费。 |
-| 2 | **S31 敌人（状态叠加层美术位）** | NEEDS-DESIGN | 文件不存在；本系统 §4 已定义图标位/tint/粒子规格，S31 须消费。 |
-| 3 | **S05 `combat_config` 状态字段重定向** | 待 DO 裁定 | S05 的 slow/poison/chain/status_stack_rule 应改引 `status_effect_config`（不修改 S05，仅标注）。 |
-| 4 | **S02 `status_effect` 枚举扩展** | 待对齐 | S02 枚举应扩展为 11 个 `status_id` 引用。 |
-| 5 | **`corrosion` 语义分歧** | 待裁定 | 任务 brief 定义 `corrosion=护甲持续削减`；S28 定义 `腐蚀=DoT 可叠 N 层`。本系统按 brief 实现为护甲削减（stack_cap_5），与 S28 原文冲突——需 DO 裁定统一（详见 §2.5 #9 与备注）。 |
-| 6 | **状态强度是否随养塔等级缩放** | 待裁定 | 当前默认状态强度取固定 `strength_init`，不随 source 塔 `cultivate_lv` 缩放（避免 runaway）；若需缩放，公式 `strength = base × growth^lv`（待 S05 对齐）。 |
-| 7 | **`vulnerable`/`conductive` 与减速绑定关系** | 待裁定 | `vulnerable` 当前初值 3.0s 固定；S28 描述为"被减速/冻结时"。是否严格绑定 slow 存在期（slow 消失则 vulnerable 提前结束）待裁定，默认独立 3.0s。 |
+| E01 | 状态无限叠加 | 所有可堆状态有 `stack_cap`；refresh/unique 不增层 | S33 |
+| E02 | 速度归零/除零 | `slow_k` 钳 min=0.1；定身用 `move_locked` flag | S24 |
+| E03 | 护甲除零/负甲 | `eff_armor = max(0, …)`；`armor_reduce` 钳 [0,0.9] | S24 |
+| E04 | 易伤/导电叠加溢出 | `incoming_dmg_mult` 钳 ≤3.0 | S24 |
+| E05 | 冲突状态（定身 vs 减速） | `move_locked=true` 压过 slow 速度乘子 | S33 |
+| E06 | 净化 vs 减益 | `clearStatus(filter=buff)` 仅清增益/护盾 | S33 |
+| E07 | 目标死亡时状态残留 | 移除全部实例；poison_dot 触发 infect | S33 |
+| E08 | 切后台 onHide(S20) | 状态计时挂起；onShow 续计 | S20 |
+| E09 | 配置缺失（某 status_id） | 该状态不施加；其余正常 + 记 S25 | S25 |
+| E10 | 同帧多源同类 | refresh 取最强；stack_cap 守 cap | S33 |
+| E11 | 位移越界（击退） | 钳至路径最近点，不脱离 | S1 |
+| E12 | 性能极值（多图标/粒子） | 图标合并 + 粒子上限（接 S23/S19） | S23 |
 
-> 除上表 NEEDS-DESIGN/待裁定项外，本系统所有初值均已填实（见 `balance/S33_status_effect.md`），无残留 `[PLACEHOLDER]`。
+### 5.5 状态转换表（自 §2.2 stateDiagram-v2）
+
+| state | event | transition | action |
+|---|---|---|---|
+| None | applyStatus() | → Applying | 查 config + stack_policy |
+| Applying | 同 id 已存在 + policy=refresh/unique | → RefreshOnly | 刷新 duration / 取 max(strength) |
+| Applying | policy=stack_cap_N + stacks<cap | → StackAdd | 新增一层 |
+| Applying | 已达 cap | → RefreshOnly | 刷新最旧层 duration |
+| Applying | 新实例（无冲突） | → Active | 创建状态实例 |
+| RefreshOnly | 刷新完成 | → Active | 属性重算 |
+| StackAdd | 层数增加 | → Active | 属性重算 |
+| Active | 每帧结算 | → Ticking | DoT/位移/属性修正 |
+| Ticking | duration 递减 | → Expiring | 倒计时 |
+| Expiring | duration≤0 | → Expired | 移除实例 |
+| Active | 目标死亡 | → Removed | 清全部；触发 infect |
+| Active | clearStatus(filter) | → Purified | 按 filter 移除匹配项 |
+| Purified/Removed | 移除完成 | → None | buff_mod 回退 → S30 |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| st_ui_max_slots | balance/S33_status_effect.json |
+| st_slow_k / st_slow_duration | balance/S33_status_effect.json |
+| st_knockback_kb_dist / st_knockback_stun | balance/S33_status_effect.json |
+| st_poison_dps / st_poison_duration | balance/S33_status_effect.json |
+| st_burn_dps / st_burn_splash / st_burn_duration | balance/S33_status_effect.json |
+| st_chain_count / st_chain_range | balance/S33_status_effect.json |
+| st_armor_break_val / st_armor_break_duration | balance/S33_status_effect.json |
+| st_vuln_k / st_vuln_duration | balance/S33_status_effect.json |
+| st_conductive_k / st_conductive_duration | balance/S33_status_effect.json |
+| st_corrosion_val / st_corrosion_duration / st_corrosion_max_stack | balance/S33_status_effect.json |
+| st_infect_radius / st_infect_dot_dps / st_infect_dot_dur | balance/S33_status_effect.json |
+| st_headwind_slow / st_headwind_duration / st_headwind_max_stack | balance/S33_status_effect.json |
+
+> ⚠ **N6 命名冲突**：本系统 balance param_id 前缀为 `st_`，但 N6 白名单要求前缀为 `status_`。建议统一为 `status_`（如 `status_slow_k`）以符合白名单，当前 balance 仍用 `st_`，需 DO 裁定是否改 prefix。
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| 1. S30 属性合成（含 `buff_mod(S33)`） | 未建；本系统 §2.7 已定义乘子契约与伤害公式 | S30 须实现并消费本系统 `buff_mod` 乘子接口 | S30（A 域） |
+| 2. S31 敌人（状态叠加层美术位） | 未建；本系统 §4 已定义图标位/tint/粒子规格 | S31 须消费状态图标栏规格（`st_ui_max_slots=6`） | S31（A 域） |
+| 3. S05 `combat_config` 状态字段重定向 | S05 持有 slow/poison/chain/status_stack_rule 旧定义 | S05 改为引用 `status_effect_config`（初值已对齐） | S05（A 域）/ DO |
+| 4. S02 `status_effect` 枚举扩展 | 当前 none/slow/poison/chain/knockback | 扩展为 11 个 `status_id` 引用数组 | S02（A 域） |
+| 5. N2: `corrosion` 语义分歧 | 本系统按 brief 实现为护甲削减（`st_corrosion_val=15%/层`，stack_cap_5） | S28 原文写「腐蚀=DoT 可叠 N 层」——已改，待 DO 终审确认 | DO / S28 |
+| 6. 状态强度随养塔等级缩放 | 当前固定 `strength_init`，不随 source 塔等级缩放 | 若需缩放：`strength = base × growth^lv` | S05（试玩后） |
+| 7. `vulnerable`/`conductive` 与减速绑定 | 默认独立 3.0s（不依赖 slow 存在期） | 是否严格绑定 slow 存在期（slow 消失则易伤提前结束） | DO |
+| N6: param_id 前缀 `st_` vs `status_` | 本系统 balance 使用 `st_` 前缀 | N6 白名单要求 `status_`——需裁定统一（改 balance prefix 或扩展白名单） | DO |
+
+> 除上表待裁定项外，本系统所有初值均已填实（共 27 条：1 全局 UI + 26 状态参数），无残留 `[PLACEHOLDER]`。跨文档对齐已与 balance/S05_combat.md（slow 0.5/2.0、poison 15/4.0、chain 3）及 balance/S28_skill_system.md 完成一致性校验。

@@ -1,0 +1,9 @@
+{
+  "auto_pause_on_hide": true,
+  "save_on_hide": true,
+  "resume_confirm": true,
+  "bg_no_tick": true,
+  "pause_bgm_on_hide": true,
+  "max_resume_lock_ms": 300.0,
+  "save_retry_queue": true
+}

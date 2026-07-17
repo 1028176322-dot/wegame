@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "enemy_config",
+  "type": "object",
+  "properties": {
+    "boss_heal_cut_rate": {
+      "type": "number"
+    },
+    "boss_speedup_interval": {
+      "type": "number"
+    },
+    "boss_speedup_mult": {
+      "type": "number"
+    },
+    "cdx_src_e_golem_base_hp": {
+      "type": "number"
+    },
+    "cdx_src_e_slime_base_hp": {
+      "type": "number"
+    },
+    "cdx_src_e_wraith_base_hp": {
+      "type": "number"
+    },
+    "enemy_hp_air": {
+      "type": "number"
+    },
+    "enemy_hp_boss": {
+      "type": "number"
+    },
+    "enemy_hp_heavy": {
+      "type": "number"
+    },
+    "enemy_hp_light": {
+      "type": "number"
+    },
+    "enemy_hp_magic_immune": {
+      "type": "number"
+    },
+    "enemy_level_scale_factor": {
+      "type": "number"
+    },
+    "enemy_speed_air": {
+      "type": "number"
+    },
+    "enemy_speed_boss": {
+      "type": "number"
+    },
+    "enemy_speed_heavy": {
+      "type": "number"
+    },
+    "enemy_speed_light": {
+      "type": "number"
+    },
+    "enemy_speed_magic_immune": {
+      "type": "number"
+    },
+    "enemy_wave_hp_growth": {
+      "type": "number"
+    },
+    "enemy_wave_speed_growth": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

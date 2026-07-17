@@ -1,10 +1,22 @@
 # 系统策划案：S12 签到系统 (Check-in System)
 
 > 归属域：B 元进度社交域 · 层级/优先级：增强 / P2 · 关联 F 码：F14 · 关联：SYSTEM_BREAKDOWN §S12
-> 状态：v0.2-detailed · 日期 2026-07-17
+> 状态：v0.3-ai-readable · 日期 2026-07-17
 > 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
 > 数值约定：凡涉及奖励内容/大奖/补签规则的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
 > 合规边界：不做强制看广告才能签（合规风险）；不做签到排行榜（见 SYSTEM_BREAKDOWN §S12）。
+
+---
+
+## 0. 元数据头
+
+- 归属域：B 元进度社交域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F14
+- 关联文档：SYSTEM_BREAKDOWN §S12
+- 依赖系统：S11（元进度入账）、S18（存档）、S10（大厅红点）、S20（生命周期）、S25（告警）、S42（登录，暂不做）
+- 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- NEEDS-DESIGN 索引：无（本系统所有 `[PLACEHOLDER]` 已在 balance/S12_checkin.json 给初值）
 
 ---
 
@@ -28,7 +40,7 @@
 
 ```
   0       150      300      450      600      750
-  ┌──────────────────────────────────────────────┐ y=0
+  ┌──────────────────────────────────────┐ y=0
   │ (20,40)⟲返回        每日签到         │ y=40  BackBtn 64×64
   │           连续签到 [N] 天 / 最高 [M]   │ y=140 StreakBar
   │  ┌──┐┌──┐┌──┐┌──┐┌──┐┌──┐┌══┐       │ y=450 Calendar 90×90
@@ -40,7 +52,7 @@
   │        │   领取 (今日可领)    │                  │
   │        │   或 明日再来        │                  │
   │        └────────────────────┘                  │
-  └──────────────────────────────────────────────┘ y=1334
+  └──────────────────────────────────────┘ y=1334
 ```
 
 ### 1.3 组件表（精确坐标 / 尺寸 / 层级 / 响应）
@@ -141,7 +153,7 @@ sequenceDiagram
 | E06 | 微信登录失败 S42 | `wx.login` 失败 | 签到纯本地，不依赖登录态 | 零阻塞 | S42(暂不做) |
 | E07 | 网络中断 | — | 签到纯本地，无网络依赖 | 不适用/N/A | — |
 | E08 | 排行榜拉取超时 | — | 签到无榜，不相关 | 不适用/N/A | — |
-| E09 | 数值极值 | `streak` 溢出 / `cycle_days` 变更 | `streak` 上限 `[PLACEHOLDER]` 钳制；`day_reward` 索引越界取末日/循环 | 不卡死 | — |
+| E09 | 数值极值 | `streak` 溢出 / `cycle_days` 变更 | `streak` 上限钳制 value_ref: balance/S12_checkin.json#chk_streak_cap；`day_reward` 索引越界取末日/循环 | 不卡死 | — |
 | E10 | 配置缺失 | `checkin_config` 缺失 | 用默认 7 日循环 + 默认奖励 | 可进页 | S25 |
 | E11 | 并发领取 | 连点 ClaimBtn | `isClaiming` 锁 0.3s，防双发 | 仅一次发奖 | — |
 | E12 | 跨周期重置 | 月度/周期切换 | 按 `keep_best`：保留 `best`，`streak` 按规则重置或延续 | 降挫败 | — |
@@ -157,8 +169,8 @@ sequenceDiagram
 | 字段 | 类型 | 取值/范围 | 默认值 | 说明 |
 |---|---|---|---|---|
 | cycle_days | int | 7 / 30 | 7 | 循环天数 |
-| day_reward | json | 每日奖励数组 | — | 第 n 日奖励（元资源/木，调优杆） |
-| day7_bonus | int | >日常 | `[PLACEHOLDER]` | 第 7 日大奖（调优杆） |
+| day_reward | json | 每日奖励数组 | [value_ref: balance/S12_checkin.json#chk_day1_reward, value_ref: balance/S12_checkin.json#chk_day2_reward, value_ref: balance/S12_checkin.json#chk_day3_reward, value_ref: balance/S12_checkin.json#chk_day4_reward, value_ref: balance/S12_checkin.json#chk_day5_reward, value_ref: balance/S12_checkin.json#chk_day6_reward, value_ref: balance/S12_checkin.json#chk_day7_reward] | 第 n 日奖励（元资源/木，调优杆） |
+| day7_bonus | int | >日常 | value_ref: balance/S12_checkin.json#chk_day7_bonus | 第 7 日大奖（调优杆） |
 | keep_best | bool | true | true | 断签保留最高连 |
 | allow_makeup | bool | false | false | 是否补签 |
 | makeup_cost | json | 补签消耗 | null | 补签资源（enable 时） |
@@ -166,12 +178,12 @@ sequenceDiagram
 | reddot_on_newday | bool | true | true | 新一天亮红点 |
 | reward_type | enum | meta_res/wood | meta_res | 奖励币种（接 S11/S3） |
 
-**示例（JSON）**
+**示例（JSON，终值以 balance/S12_checkin.json 为准）**
 ```json
 {
   "cycle_days": 7,
-  "day_reward": [[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER]],
-  "day7_bonus": [PLACEHOLDER],
+  "day_reward": [10,15,20,25,30,40,100],
+  "day7_bonus": 100,
   "keep_best": true,
   "allow_makeup": false,
   "makeup_cost": null,
@@ -186,20 +198,20 @@ sequenceDiagram
 | 字段 | 类型 | 取值/范围 | 默认值 | 说明 |
 |---|---|---|---|---|
 | day_index | int | 1–cycle_days | — | 第几日 |
-| meta_res | int | 0–9999 | `[PLACEHOLDER]` | 元资源奖励 |
+| meta_res | int | 0–9999 | value_ref: balance/S12_checkin.json#chk_day1_reward | 元资源奖励（D1）；D2–D7 依次 value_ref chk_day2_reward…chk_day7_reward |
 | wood | int | 0–9999 | 0 | 木头奖励（接 S3） |
 | is_bonus | bool | false | false | 是否大奖日 |
 
 **示例（CSV）**
 ```csv
 day_index,meta_res,wood,is_bonus
-1,[PLACEHOLDER],0,false
-2,[PLACEHOLDER],0,false
-3,[PLACEHOLDER],0,false
-4,[PLACEHOLDER],0,false
-5,[PLACEHOLDER],0,false
-6,[PLACEHOLDER],0,false
-7,[PLACEHOLDER],0,true
+1,value_ref: balance/S12_checkin.json#chk_day1_reward,0,false
+2,value_ref: balance/S12_checkin.json#chk_day2_reward,0,false
+3,value_ref: balance/S12_checkin.json#chk_day3_reward,0,false
+4,value_ref: balance/S12_checkin.json#chk_day4_reward,0,false
+5,value_ref: balance/S12_checkin.json#chk_day5_reward,0,false
+6,value_ref: balance/S12_checkin.json#chk_day6_reward,0,false
+7,value_ref: balance/S12_checkin.json#chk_day7_reward,0,true
 ```
 
 ---
@@ -217,3 +229,93 @@ day_index,meta_res,wood,is_bonus
 | `reward_icon` 奖励图标 | 展示 | 静态 | 48×48 | PNG | 复用 S11/S3 图标 |
 
 > 奖励图标复用 S3/S11；特效见 S23。资源走主包或首分包（S19）。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构（字段 / 类型 / 来源 config 字段）
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| checkin_config | json | §3.1 checkin_config（cycle_days / day_reward / day7_bonus / keep_best / allow_makeup / makeup_cost / reset_rule / reddot_on_newday / reward_type） |
+| checkin_reward_detail[] | json | §3.2 checkin_reward_detail（day_index / meta_res / wood / is_bonus） |
+| save.last_signin_date | string | S18 存档字段（本地 0 点 `yyyy-mm-dd`） |
+| save.streak | int | S18 存档字段 |
+| save.best | int | S18 存档字段 |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| claim_result | bool | 领取成功/失败 |
+| streak_update | int | 更新后连续天数 |
+| reddot_clear | bool | 通知 S10 清除签到红点 |
+| grant_amount | int | 实际入账 meta_res（来自 day_reward） |
+
+### 5.3 跨系统接口调用表（caller / callee / function / 方向 / 用途）
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S12 | S18 | querySigninState() | in | 读 last_date/streak/best |
+| S12 | S18 | saveSigninState(date,streak,best) | out | 持久化签到态 |
+| S12 | S11 | addMetaRes(day_reward[seq]) | out | 发奖入账（reward_type=meta_res） |
+| S12 | S10 | clearSigninReddot() | out | 领后清红点 |
+| S12 | S25 | reportGrantFail() | out | E05 回滚告警 |
+
+### 5.4 错误码表（E# / 场景 / 兜底 / 涉及系统）
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 S20 | 存签到态，onShow 续 | S20/S18 |
+| E02 | 数据损坏 S18 | 默认空档进页 | S18 |
+| E03 | 已签今日 | ClaimBtn 禁用防双发 | — |
+| E04 | 日期跨日/时区 | 本地 0 点切日 | — |
+| E05 | 奖励发放失败 | 回滚 last_date + 告警 S25 | S25 |
+| E06 | 微信登录失败 S42 | 纯本地零阻塞 | S42 |
+| E07 | 网络中断 | 纯本地 N/A | — |
+| E08 | 排行榜拉取超时 | 无榜 N/A | — |
+| E09 | 数值极值 | streak 钳 value_ref chk_streak_cap；day_reward 越界取末日 | — |
+| E10 | 配置缺失 | 默认 7 日循环 | S25 |
+| E11 | 并发领取 | isClaiming 锁 0.3s | — |
+| E12 | 跨周期重置 | keep_best 保留最高 | — |
+
+### 5.5 状态转换表（state / event / transition / action）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Open | 进入 | → LoadState | 读档 S18 |
+| LoadState | 读档完成 | → CalcReddot | 取 last_date/streak/best |
+| CalcReddot | 渲染 | → Idle | 日历三态 |
+| Idle | 点领取 & 未签今日 | → Claim | — |
+| Claim | 日期≠今日 & 资源可发 | → Validate | — |
+| Validate | 通过 | → Grant | 发奖 S11 + 写 last_date + streak |
+| Grant | 入账成功 | → Persist | 存 S18 |
+| Persist | 完成 | → Idle | 刷新 + ClaimFX + 清红点 |
+| Validate | 已签/异常 | → Blocked | — |
+| Blocked | 回大厅 | → Idle | — |
+| Idle | onHide S20 | → Background | — |
+| Background | onShow S20 | → Idle | 续 |
+
+### 5.6 数值消费清单（本系统消费的所有 balance param_id + 来源文件）
+
+| param_id | 来源 balance 文件 | 用途 |
+|---|---|---|
+| chk_day1_reward | balance/S12_checkin.json | 第 1 日元资源（§3.1/§3.2 D1） |
+| chk_day2_reward | balance/S12_checkin.json | 第 2 日元资源（D2） |
+| chk_day3_reward | balance/S12_checkin.json | 第 3 日元资源（D3） |
+| chk_day4_reward | balance/S12_checkin.json | 第 4 日元资源（D4） |
+| chk_day5_reward | balance/S12_checkin.json | 第 5 日元资源（D5） |
+| chk_day6_reward | balance/S12_checkin.json | 第 6 日元资源（D6） |
+| chk_day7_reward | balance/S12_checkin.json | 第 7 日元资源（D7，is_bonus） |
+| chk_day7_bonus | balance/S12_checkin.json | 第 7 日大奖额（§3.1 day7_bonus） |
+| chk_streak_cap | balance/S12_checkin.json | 连续签到上限钳制（§2.4 E09） |
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-S12-1 | `reward_type=meta_res`（§3.1 默认值），奖励仅入 S11 元资源，与签到/成就同源 | 是否开放 `wood` 双币种（接 S3）——目前默认单币种 meta_res，避免经济失衡；若未来接 wood 需重核掉落曲线 | S12 |
+| C-S12-2 | `allow_makeup=false`（默认关闭），补签逻辑已实现但默认不开放 | 是否在合规允许范围内开放补签（消耗 meta_res 补签）——待合规与 DO 裁定 | S12 / DO |

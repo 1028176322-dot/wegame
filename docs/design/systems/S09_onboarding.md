@@ -1,9 +1,21 @@
 # 系统策划案：S9 新手引导系统 (Onboarding System)
 
 > 归属域：B 元进度社交域 · 层级/优先级：MVP / P1 · 关联 F 码：F10 · 关联：GDD §7；SYSTEM_BREAKDOWN §S9
-> 状态：v0.2-detailed · 日期 2026-07-17
+> 状态：v0.3-ai-readable · 日期 2026-07-17
 > 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
 > 数值约定：凡涉及成本/时长/奖励的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
+
+---
+
+## 0. 元数据头
+
+- 归属域：B 元进度社交域
+- 层级 / 优先级：MVP / P1
+- 关联 F 码：F10
+- 关联文档：GDD §7；SYSTEM_BREAKDOWN §S9
+- 依赖系统：S1（地图/战场）、S2（建筑）、S3（经济）、S6（Lives）、S18（存档）、S20（生命周期）、S25（告警）
+- 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- NEEDS-DESIGN 索引：无（本系统所有 `[PLACEHOLDER]` 已在 balance/S09_onboarding.json 给初值，无遗留）
 
 ---
 
@@ -58,7 +70,7 @@
 
 | 组件 ID | 位置(x,y) | 尺寸(w×h) | z | 响应行为 | 备注 |
 |---|---|---|---|---|---|
-| MaskLayer | (0,0) | 750×1334 | 59 | 拦截非聚焦区点击；聚焦挖空区透传点击 | Graphics+Mask，alpha `[PLACEHOLDER]`0.6 |
+| MaskLayer | (0,0) | 750×1334 | 59 | 拦截非聚焦区点击；聚焦挖空区透传点击 | Graphics+Mask，alpha value_ref: balance/S09_onboarding.json#onb_mask_alpha |
 | Spotlight | 跟随 target | 按 target | 60 | 无交互，纯视觉聚焦 | 圆/矩形由 `highlight_shape` 决定 |
 | SafeTip | 居中 (225,1250) | 300×40 | 60 | 无交互 | Label，文案「本局不会失败」 |
 | HandGuide | (target.x-40, target.y-100) | 80×80 | 61 | 脉冲动画；首次出现播落位 tween | 序列帧 `hand_pulse` |
@@ -97,7 +109,7 @@ flowchart TD
 |---|---|---|---|
 | 引导启动判断 | 启动 / onShow | 读 `tutorial_done`(S18) → 未完且 `enable_tutorial` → 进引导局 | 进入引导 / 跳过 |
 | 加载剧本 | 进入引导 | 读 `onboarding_config` + `tutorial_script` → 初始化 step 指针=1 | 剧本就绪 |
-| 锁命保护 | 进入引导即生效 | 调 S6 锁定 Lives（值=`lives_lock_value`），怪物 HP/数量弱化到不可能漏 | 首波无失败 |
+| 锁命保护 | 进入引导即生效 | 调 S6 锁定 Lives（值=value_ref: balance/S09_onboarding.json#onb_lives_lock），怪物 HP/数量弱化到不可能漏 | 首波无失败 |
 | 步骤推进 | 当前步 `trigger_action` 行为发生 | 校验玩家行为（build/upgrade/exchange/kill_first/place_tower）→ 通过 → step+1 | 进度++ |
 | 探索发现 | 风塔建成（步3） | 不弹文字，靠击退飘字（S5）让玩家自悟「它在击退控制」 | 自发现标记 |
 | 超时跳步 | 当前步停留 > `timeout` | 自动 `step+1` 或弹气泡提示重试（按 `auto_advance_on_timeout`） | 防卡死 |
@@ -143,7 +155,7 @@ sequenceDiagram
     participant S3 as S3 经济
     participant S6 as S6 Lives
     participant S18 as S18 存档
-    OB->>S6: 锁 Lives(lives_lock_value)
+    OB->>S6: 锁 Lives(onb_lives_lock)
     OB->>S1: 进入引导局(弱化波表)
     OB->>P: 手型指 slot_3 + 气泡"建箭塔"
     P->>S1: 点 slot_3
@@ -186,15 +198,15 @@ sequenceDiagram
 | enable_tutorial | bool | true/false | true | 总开关 |
 | force_tutorial | bool | false | false | 测试用：每次强制重引导 |
 | tutorial_level_id | string | 关联 S14/S1 | "lv_tutorial" | 引导专用弱化关卡 |
-| lives_lock_value | int | 1–999 | `[PLACEHOLDER]` 99 | 引导局锁定 Lives 值 |
-| tutorial_wave_count | int | 1–20 | `[PLACEHOLDER]` 8 | 引导局波数（保送） |
+| lives_lock_value | int | 1–999 | value_ref: balance/S09_onboarding.json#onb_lives_lock | 引导局锁定 Lives 值 |
+| tutorial_wave_count | int | 1–20 | value_ref: balance/S09_onboarding.json#onb_tutorial_wave_count | 引导局波数（保送） |
 | show_skip_button | bool | true | true | 是否显示跳过 |
 | auto_advance_on_timeout | bool | true | true | 超时自动跳步 |
 | default_timeout | float | 5–60 | 30 | 单步默认超时(s) |
 | complete_reddot_target | string | 入口 id | "signin" | 收尾钩子高亮入口(S10) |
-| mask_alpha | float | 0.3–0.85 | 0.6 | 遮罩透明度 |
+| mask_alpha | float | 0.3–0.85 | value_ref: balance/S09_onboarding.json#onb_mask_alpha | 遮罩透明度 |
 
-**示例（JSON）**
+**示例（JSON，旧版示意；终值以 balance/S09_onboarding.json 为准，见 §5.6）**
 ```json
 {
   "enable_tutorial": true,
@@ -250,7 +262,7 @@ step_id,target_type,target_id,text,trigger_action,lock_lives,timeout,highlight_s
 |---|---|---|---|---|---|
 | `hand_pulse` 引导手型 | 指示 + 脉冲 | 4 帧循环 | 单帧 80×80（图集 80×320 竖排） | PNG（含透明）/ 建议 plist 图集 | 4 等分竖排（80×80/帧），帧率 8fps；或代码 tween 缩放替代 |
 | `bubble_9` 引导气泡 | 文案载体 | 静态 | 360×120 | PNG 九宫（3×3） | 九宫 3×3 切片，四角不动、中区拉伸 |
-| `mask_alpha` 遮罩 | 聚焦压暗 | 静态 | 750×1334 | 推荐代码 Graphics+Mask（省包）；兜底 PNG 单图 | 单图，alpha 由 `mask_alpha` 控制；挖空用 Mask 组件 |
+| `mask_alpha` 遮罩 | 聚焦压暗 | 静态 | 750×1334 | 推荐代码 Graphics+Mask（省包）；兜底 PNG 单图 | 单图，alpha 由 `onb_mask_alpha` 控制；挖空用 Mask 组件 |
 | `skip_icon` 跳过按钮 | 退出引导 | 静态(可选按下态 2 帧) | 64×64 | PNG | 单图；按下态叠 `skip_icon_p` 64×64 |
 | `safe_tip` 保送提示 | 安心文案 | 文本(Label) | 300×40 | 不用图，用 Cocos Label | — |
 | `spotlight` 聚光挖空 | 聚焦透出 | 代码 Mask | 按 target | 不用图，用 Mask 模板 | 圆/矩形由 `highlight_shape` |
@@ -259,3 +271,93 @@ step_id,target_type,target_id,text,trigger_action,lock_lives,timeout,highlight_s
 
 > 引导资源轻量，优先主包（S19）；动画/音效详见 S23。未解锁态/剪影复用 S16 规范。
 > 资源体积提示：遮罩与聚光强烈建议**代码实现**（Graphics + Mask），避免占用主包位图预算（微信主包 ≤4MB，见 S19）。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构（字段 / 类型 / 来源 config 字段）
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| onboarding_config | json | §3.1 onboarding_config（enable_tutorial / tutorial_level_id / lives_lock_value / tutorial_wave_count / show_skip_button / auto_advance_on_timeout / default_timeout / complete_reddot_target / mask_alpha） |
+| tutorial_script[] | json | §3.2 tutorial_script（step_id / target_type / target_id / text / trigger_action / lock_lives / timeout / highlight_shape / focus_w / focus_h / allow_skip / is_explore / hand_prefab / sfx_id / reward_on_complete / next_step） |
+| tutorial_done | bool | S18 存档字段（读档判断是否进引导） |
+| player_step | int | S18 存档字段（读档续步） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| tutorial_done | bool | 持久化 S18，标记引导完成 |
+| player_step | int | 当前步（持久化 S18，防退出丢失） |
+| scene_route | enum | tutorial_level / normal_level / hub(S10) |
+| step_event | enum | build / upgrade / exchange / kill_first / place_tower / tap / none |
+
+### 5.3 跨系统接口调用表（caller / callee / function / 方向 / 用途）
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S9 | S18 | queryTutorialDone() | in | 读引导完成标记，决定进引导局 / 正常局 |
+| S9 | S18 | saveTutorialProgress(step) | out | 存当前步，防退出丢失 |
+| S9 | S6 | lockLives(value_ref onb_lives_lock) | out | 锁 Lives，保送本局 |
+| S9 | S1 | enterTutorialLevel(level_id) | out | 进弱化引导局 |
+| S9 | S2 | openBuildWheel(unlocked_list) | out | 仅开放已解锁塔种轮盘 |
+| S9 | S3 | queryGold() | in | 校验建塔金币是否足够 |
+| S9 | S10 | routeHub() | out | 引导完成后路由大厅 |
+
+### 5.4 错误码表（E# / 场景 / 兜底 / 涉及系统）
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 S20 | 暂停计时 + 存 step，onShow 续 | S20/S18 |
+| E02 | 数据损坏 S18 | 重置 tutorial_done=false，重引导，上报 S25 | S18/S25 |
+| E03 | 配置缺失 | 跳非法 step；整体不可用则进正常局 | S25 |
+| E04 | 并发操作 | 0.3s 防抖锁，仅首次生效 | — |
+| E05 | 数值极值 | timeout 钳 [5,60]；step 钳 [1,max] | — |
+| E06 | 微信登录失败 S42 | 引导零阻塞（不依赖登录） | S42 |
+| E07 | 网络中断 | 本地默认 onboarding_config | S21 |
+| E08 | 排行榜拉取超时 | 不强制拉榜，入口红点异步 | S13/S10 |
+| E09 | 步骤卡死 | timeout 到按 auto_advance 跳步 | — |
+| E10 | 强制退出 | onHide 已存 step，重进续引导 | S18 |
+
+### 5.5 状态转换表（state / event / transition / action）
+
+| state | event | transition | action |
+|---|---|---|---|
+| JudgeSave | 无完成标记 & enable=true | → Tutorial | 进引导局 |
+| JudgeSave | 已完成/enable=false | → NormalGame | 进正常局/大厅 |
+| Tutorial | 进引导局 | → LockLives | 锁命+怪弱+加载脚本 |
+| LockLives | 就绪 | → StepWait | 显示遮罩/聚光 |
+| StepWait | 显示手型/气泡 | → StepActive | — |
+| StepActive | 玩家完成 trigger_action | → StepValidate | — |
+| StepValidate | 校验通过 | → StepAdvance | — |
+| StepAdvance | 仍有下一步 | → StepWait | step+1 |
+| StepAdvance | 全部步完成 | → TutorialDone | — |
+| StepActive | 停留>timeout | → OnTimeout | — |
+| OnTimeout | auto_advance_on_timeout=true | → StepAdvance | 自动跳步 |
+| OnTimeout | 否则 | → StepActive | 提示重试 |
+| StepActive | 点 SkipBtn | → SkipConfirm | — |
+| SkipConfirm | 确认跳过 | → TutorialDone | — |
+| SkipConfirm | 取消 | → StepActive | — |
+| StepWait | onHide S20 | → Background | — |
+| Background | onShow S20 | → StepWait | 读 S18 续步 |
+| TutorialDone | 显示收尾钩子 | → Hook | — |
+| Hook | 写 tutorial_done | → Persist | — |
+| Persist | 回大厅 | → [*] | 路由 S10 |
+
+### 5.6 数值消费清单（本系统消费的所有 balance param_id + 来源文件）
+
+| param_id | 来源 balance 文件 | 用途 |
+|---|---|---|
+| onb_mask_alpha | balance/S09_onboarding.json | 遮罩透明度（§1.3 / §3.1 mask_alpha） |
+| onb_lives_lock | balance/S09_onboarding.json | 引导局锁定 Lives（§2.1 / §3.1 lives_lock_value） |
+| onb_tutorial_wave_count | balance/S09_onboarding.json | 引导局保送波数（§3.1 tutorial_wave_count） |
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-S09-1 | 引导完成态 `tutorial_done` 仅本地 S18，未与 S42 云存档打通（E06 零阻塞兜底） | 待 S42 云存档实装后，是否跨设备同步 `tutorial_done`（建议仍本地优先，云存档仅做备份） | S09 |

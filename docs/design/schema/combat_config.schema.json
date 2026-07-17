@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "combat_config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "counter_matrix", "armor_reduce", "projectile_speed", "splash_radius",
+    "slow_factor", "slow_duration", "poison_dps", "poison_duration",
+    "chain_count", "chain_range", "dmg_round", "electric_vs_air_override",
+    "status_stack_rule", "damage_formula"
+  ],
+  "properties": {
+    "counter_matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-unit": "倍",
+      "x-desc": "伤害类型×护甲 克制系数表（S05 §3 / balance combat_cm_*）",
+      "properties": {
+        "arrow_vs_light":       {"type":"number","minimum":0.5,"maximum":2.0,"default":1.5,"x-param-map":"combat_cm_arrow_vs_light"},
+        "cannon_vs_heavy":      {"type":"number","minimum":0.5,"maximum":2.0,"default":1.5,"x-param-map":"combat_cm_cannon_vs_heavy"},
+        "ice_vs_none":          {"type":"number","minimum":0.5,"maximum":2.0,"default":1.0,"x-param-map":"combat_cm_ice_vs_none"},
+        "magic_vs_magic_immune":{"type":"number","minimum":0.0,"maximum":2.0,"default":0.0,"x-param-map":"combat_cm_magic_vs_magic_immune"},
+        "poison_vs_heavy":      {"type":"number","minimum":0.5,"maximum":2.0,"default":1.3,"x-param-map":"combat_cm_poison_vs_heavy"},
+        "electric_vs_air":      {"type":"number","minimum":0.5,"maximum":2.0,"default":1.5,"x-param-map":"combat_electric_vs_air"}
+      },
+      "required": ["arrow_vs_light","cannon_vs_heavy","ice_vs_none","magic_vs_magic_immune","poison_vs_heavy","electric_vs_air"]
+    },
+    "armor_reduce": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-unit": "减伤%(0–1小数)",
+      "x-desc": "护甲类型→减伤比例（S30 §3.3 / balance combat_armor_*）",
+      "properties": {
+        "none":         {"type":"number","minimum":0,"maximum":0.9,"default":0.0,"x-param-map":"combat_armor_none"},
+        "light":        {"type":"number","minimum":0,"maximum":0.9,"default":0.1,"x-param-map":"combat_armor_light"},
+        "heavy":        {"type":"number","minimum":0,"maximum":0.9,"default":0.3,"x-param-map":"combat_armor_heavy"},
+        "magic_immune": {"type":"number","minimum":0,"maximum":0.9,"default":0.0,"x-param-map":"combat_armor_magic_immune"},
+        "poison":       {"type":"number","minimum":0,"maximum":0.9,"default":0.2,"x-param-map":"combat_armor_poison"}
+      },
+      "required": ["none","light","heavy","magic_immune","poison"]
+    },
+    "projectile_speed":         {"type":"number","minimum":100,"maximum":2000,"default":600,"x-unit":"px/s","x-param-map":"combat_projectile_speed"},
+    "splash_radius":           {"type":"number","minimum":0,"maximum":200,"default":80,"x-unit":"px","x-param-map":"combat_splash_radius"},
+    "slow_factor":             {"type":"number","minimum":0.3,"maximum":0.9,"default":0.5,"x-unit":"倍","x-param-map":"combat_slow_factor"},
+    "slow_duration":           {"type":"number","minimum":0.5,"maximum":5,"default":2.0,"x-unit":"秒","x-param-map":"combat_slow_duration"},
+    "poison_dps":              {"type":"number","minimum":1,"maximum":100,"default":15,"x-unit":"点/秒","x-param-map":"combat_poison_dps"},
+    "poison_duration":         {"type":"number","minimum":1,"maximum":10,"default":4.0,"x-unit":"秒","x-param-map":"combat_poison_duration"},
+    "chain_count":             {"type":"integer","minimum":0,"maximum":10,"default":3,"x-unit":"跳","x-param-map":"combat_chain_count"},
+    "chain_range":             {"type":"number","minimum":50,"maximum":400,"default":150,"x-unit":"px","x-param-map":"combat_chain_range"},
+    "dmg_round":               {"type":"integer","minimum":0,"maximum":3,"default":0,"x-unit":"位","x-param-map":"combat_dmg_round"},
+    "electric_vs_air_override":{"type":"number","minimum":0.5,"maximum":2.0,"default":1.5,"x-unit":"倍","x-param-map":"combat_electric_vs_air_override"},
+    "status_stack_rule":       {"type":"string","enum":["refresh","stack"],"default":"refresh","x-unit":"-","x-desc":"同类型状态叠加规则（S05 §3 固定默认）"},
+    "damage_formula":          {"type":"string","default":"base*level_bonus*growth^lv*counter-armor","x-unit":"-","x-desc":"伤害公式模板（结构，不可热更逻辑；S05 §3）"},
+    "crit_rate":  {"type":"number","minimum":0,"maximum":1,"x-unit":"率","x-desc":"NEEDS-DESIGN：暴击机制未设计，缺省按未启用"},
+    "crit_mult":  {"type":"number","minimum":1,"maximum":5,"x-unit":"倍","x-desc":"NEEDS-DESIGN：同 crit_rate"}
+  },
+  "x-conflicts": {
+    "C-1": "magic_vs_magic_immune 取 0.0（魔免免疫魔法铁律）；S05 §2.5.10 C-1 旧文仍写 balance 1.5 矛盾，balance 表已更新 0.0，待同步文档",
+    "C-2": "armor_reduce.poison 暂保留（balance 有 combat_armor_poison=0.2），但 S30 权威枚举无 poison；建议删 poison、S04 枚举改 air",
+    "C-6": "damage_formula 默认串为减法，实际 S05 §2.5/S30/S33 为乘法 ×(1-reduce)；建议更新默认串文案"
+  }
+}

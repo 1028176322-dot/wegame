@@ -1,0 +1,7 @@
+{
+  "upgrade_start_gold_effect": 0.2,
+  "upgrade_leak_tolerance_effect": 2.0,
+  "upgrade_wood_gain_effect": 0.2,
+  "node_grid_spacing": 140.0,
+  "display_meta_res": 0.0
+}

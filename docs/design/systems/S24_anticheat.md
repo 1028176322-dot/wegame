@@ -1,22 +1,28 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S24 防作弊系统 (Anti-cheat System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：增强 / P2 · 关联 F 码：F43 · 关联：SYSTEM_BREAKDOWN §S24 · GDD §6（经济可解性）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：模块表 4 行 + 3 异常 + 单表 5 字段，阈值硬编码示例值）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F43
+- 关联系统：S3（经济校验）、S8（结算校验）、S18（读档 checksum/写前校验）、S25（可疑上报/阈值聚类）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：S18 checksum；S25 上报通道；纯本地校验（离线可用）
+- NEEDS-DESIGN 索引：S24-ND1（gold_per_wave_max，NEEDS-DESIGN owner:S24 due:P4-tuning）｜S24-ND2（wood_per_wave_max，NEEDS-DESIGN owner:S24 due:P4-tuning）｜S24-ND3（score_jump_max，NEEDS-DESIGN owner:S24 due:P4-tuning）｜S24-ND4（best_wave_jump_max，NEEDS-DESIGN owner:S24 due:P4-tuning）｜S24-ND5（check_interval_ms，NEEDS-DESIGN owner:S24 due:P4-tuning）｜S24-ND6（flag_rate_alert，NEEDS-DESIGN owner:S24 due:P4-tuning）
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
 | §1 UI 布局 | 仅文字 | 明确"无玩家可见 UI"原则 + 不提示被查策略说明 |
 | §2 逻辑功能 | 模块表 4 行 + 3 异常 | 加**校验/检测状态机**、**检测时序图**、**异常边界用例表（12 类，含误伤/离线改档/白名单）** |
-| §3 配置表 | 单表 5 字段（含硬编码示例） | `anticheat_config` 扩字段 + **多行示例**，阈值全部改 `[PLACEHOLDER]` 标注调优杆 |
+| §3 配置表 | 单表 5 字段（含硬编码示例） | `anticheat_config` 扩字段 + **多行示例**，阈值全部改 S24-ND1~ND6 调优杆标注 |
 | §4 美术资源 | 2 行占位 | 明确"纯后台无美术" + 内部告警（运营侧，非游戏内） |
 
-> 红线：v0.1 示例把 `gold_per_wave_max: 500` / `score_jump_max: 50` 写成具体数，违反"不捏造平衡数值"。v0.2 全部改为 `[PLACEHOLDER]` + 调优杆标注，实际值由 S25 观测 + GDD §6 通胀检测裁定。
+> 红线：v0.1 示例把 `gold_per_wave_max: 500` / `score_jump_max: 50` 写成具体数，违反"不捏造平衡数值"。v0.2 全部改为 S24-ND1~ND6 调优杆标注，实际值由 S25 观测 + GDD §6 通胀检测裁定。
 
 ---
 
@@ -96,7 +102,7 @@ sequenceDiagram
 | E2 | 校验计算错 | 阈值/算法 bug | 跳过该次校验，不阻玩法，告警 S25 | 不崩 |
 | E3 | 离线改档(S18) | 手动改 save_main | 读档 checksum/范围校验拦截→走 S18 损坏/重置 | 防改包 |
 | E4 | 白名单误判 | 测试号触发 | 白名单豁免，仅记录 | 不误伤 |
-| E5 | 阈值过严 | 正常玩法频繁标记 | 监控标记率，超 `[PLACEHOLDER]`% 触发阈值复核 | 防过严 |
+| E5 | 阈值过严 | 正常玩法频繁标记 | 监控标记率，超 `S24-ND6`% 触发阈值复核 | 防过严 |
 | E6 | 阈值过松 | 作弊未被标 | S25 事后聚类发现→调阈值 | 闭环 |
 | E7 | 上报失败(S25) | 网络/服务错 | 本地缓存标记，有网补报 | 不丢证据 |
 | E8 | 多标记同帧 | 多个指标同帧异常 | 合并为单条工单，附全上下文 | 不刷告警 |
@@ -113,33 +119,33 @@ sequenceDiagram
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 / 调优杆 |
 |------|------|----------|--------|---------------|
 | enable | bool | true | true | 总开关 |
-| gold_per_wave_max | int | >正常峰值 | `[PLACEHOLDER]` | 单波金币上限 **调优杆** |
-| wood_per_wave_max | int | >正常峰值 | `[PLACEHOLDER]` | 单波木头上限 **调优杆** |
-| score_jump_max | int | >正常 | `[PLACEHOLDER]` | 成绩跳变上限 **调优杆** |
-| best_wave_jump_max | int | >正常 | `[PLACEHOLDER]` | 最佳波数跳变上限 **调优杆** |
-| check_interval_ms | int | 100–5000 | `[PLACEHOLDER]` | 采样校验间隔 **调优杆** |
+| gold_per_wave_max | int | >正常峰值 | S24-ND1 · NEEDS-DESIGN (owner: S24, due: P4-tuning) | 单波金币上限 **调优杆** |
+| wood_per_wave_max | int | >正常峰值 | S24-ND2 · NEEDS-DESIGN (owner: S24, due: P4-tuning) | 单波木头上限 **调优杆** |
+| score_jump_max | int | >正常 | S24-ND3 · NEEDS-DESIGN (owner: S24, due: P4-tuning) | 成绩跳变上限 **调优杆** |
+| best_wave_jump_max | int | >正常 | S24-ND4 · NEEDS-DESIGN (owner: S24, due: P4-tuning) | 最佳波数跳变上限 **调优杆** |
+| check_interval_ms | int | 100–5000 | S24-ND5 · NEEDS-DESIGN (owner: S24, due: P4-tuning) | 采样校验间隔 **调优杆** |
 | punish_mode | enum | mark/ban/revert | mark | 惩罚（首版仅标记） |
 | whitelist | string[] | 内部号 openid | [] | 豁免名单 |
 | checksum_algo | string | "crc32"/"md5" | "crc32" | 完整性算法（本地基础） |
 | report_to | string | 分析系统 | "s25" | 上报目标 |
-| flag_rate_alert | float | 0–1 | `[PLACEHOLDER]` | 标记率告警线 **调优杆** |
+| flag_rate_alert | float | 0–1 | S24-ND6 · NEEDS-DESIGN (owner: S24, due: P4-tuning) | 标记率告警线 **调优杆** |
 
-### 3.2 示例数据（多行，阈值均 `[PLACEHOLDER]`）
+### 3.2 示例数据（多行，阈值均 NEEDS-DESIGN）
 **示例 A：首版保守（仅标记、宽松）**
 ```json
-{ "enable": true, "gold_per_wave_max": "[PLACEHOLDER]", "wood_per_wave_max": "[PLACEHOLDER]",
-  "score_jump_max": "[PLACEHOLDER]", "best_wave_jump_max": "[PLACEHOLDER]",
-  "check_interval_ms": "[PLACEHOLDER]", "punish_mode": "mark",
-  "whitelist": [], "checksum_algo": "crc32", "report_to": "s25", "flag_rate_alert": "[PLACEHOLDER]" }
+{ "enable": true, "gold_per_wave_max": "S24-ND1", "wood_per_wave_max": "S24-ND2",
+  "score_jump_max": "S24-ND3", "best_wave_jump_max": "S24-ND4",
+  "check_interval_ms": "S24-ND5", "punish_mode": "mark",
+  "whitelist": [], "checksum_algo": "crc32", "report_to": "s25", "flag_rate_alert": "S24-ND6" }
 ```
 **示例 B：加强（缩短间隔、回滚）**
 ```json
-{ "enable": true, "gold_per_wave_max": "[PLACEHOLDER]", "wood_per_wave_max": "[PLACEHOLDER]",
-  "score_jump_max": "[PLACEHOLDER]", "best_wave_jump_max": "[PLACEHOLDER]",
-  "check_interval_ms": "[PLACEHOLDER]", "punish_mode": "revert",
-  "whitelist": ["internal_test_openid"], "checksum_algo": "crc32", "report_to": "s25", "flag_rate_alert": "[PLACEHOLDER]" }
+{ "enable": true, "gold_per_wave_max": "S24-ND1", "wood_per_wave_max": "S24-ND2",
+  "score_jump_max": "S24-ND3", "best_wave_jump_max": "S24-ND4",
+  "check_interval_ms": "S24-ND5", "punish_mode": "revert",
+  "whitelist": ["internal_test_openid"], "checksum_algo": "crc32", "report_to": "s25", "flag_rate_alert": "S24-ND6" }
 ```
-> 所有阈值 `[PLACEHOLDER]`，由 S25 观测正常分布 + GDD §6 通胀检测裁定；v0.1 硬编码的 `500/50` 已移除，避免捏造平衡数值。`punish_mode` 首版强制 `mark`（仅标记），深惩罚（ban/revert）待合规与误伤评估后开启。
+> 所有阈值（标 `S24-ND1`~`S24-ND6`）由 S25 观测正常分布 + GDD §6 通胀检测裁定；v0.1 硬编码的 `500/50` 已移除，避免捏造平衡数值。`punish_mode` 首版强制 `mark`（仅标记），深惩罚（ban/revert）待合规与误伤评估后开启（见 §6.1 S24-C1）。
 
 ---
 
@@ -151,3 +157,81 @@ sequenceDiagram
 | （内部告警） | — | — | — | — | — | 运营后台看板（非游戏内资源，外部系统） |
 
 > 纯后台系统；深度服务端反作弊为后续（成本考量）。本系统不产生任何游戏内渲染资源；被查玩家无任何提示，保护公平且防规避。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| gold_per_wave_max | int | `anticheat_config.gold_per_wave_max`（S24-ND1） |
+| wood_per_wave_max | int | `anticheat_config.wood_per_wave_max`（S24-ND2） |
+| score_jump_max | int | `anticheat_config.score_jump_max`（S24-ND3） |
+| best_wave_jump_max | int | `anticheat_config.best_wave_jump_max`（S24-ND4） |
+| check_interval_ms | int | `anticheat_config.check_interval_ms`（S24-ND5） |
+| flag_rate_alert | float | `anticheat_config.flag_rate_alert`（S24-ND6） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| flag | enum | pass / suspicious / whitelisted / flagged |
+| report_ctx | object | 上报上下文（含可疑指标） |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S3 / S8 | S24 | `validate(gain, perWave)` | in | 币/成绩校验 |
+| S18 | S24 | 读档 checksum 校验 | in | 离线改档拦截 |
+| S24 | S25 | `report(suspicious)` | out | 上报分析 |
+| S24 | S18 | 写前 checksum | out | 完整性 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 校验误伤 | 仅标记不惩罚，人工复核 | S25 |
+| E2 | 校验计算错 | 跳过校验，告警 | S25 |
+| E3 | 离线改档 | 读档校验拦截→S18 损坏流程 | S18 |
+| E4 | 白名单误判 | 豁免仅记录 | — |
+| E5 | 阈值过严 | 标记率超 `S24-ND6` 触发复核 | S25 |
+| E6 | 阈值过松 | S25 聚类调阈值 | S25 |
+| E7 | 上报失败 | 本地缓存补报 | S25 |
+| E8 | 多标记同帧 | 合并单工单 | — |
+| E9 | checksum 缺失 | 范围校验+补写 | S18 |
+| E10 | 内存改币 | 采样比对基准曲线 | — |
+| E11 | 回滚负资源 | 回滚安全基线≥0 | — |
+| E12 | 微信无关 | 纯本地 | — |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Monitoring | 对局/读写事件 | → Validating | 币/成绩变更 |
+| Validating | 范围+checksum OK | → Pass | 放行 |
+| Validating | 超阈值/跳变/不符 | → Suspicious | — |
+| Suspicious | 命中白名单 | → Whitelist | 仅记录 |
+| Suspicious | 非白名单 | → Flagged | — |
+| Whitelist | — | → LogOnly | 仅记录 |
+| Flagged | — | → Reporting | 上报 S25 |
+| Reporting | — | → Pending | 待复核 |
+| Pending | 确认作弊 | → Reverted | 回滚/拒榜 |
+| Pending | 复核无误 | → Cleared | 清除标记 |
+| Pass / LogOnly / Reverted / Cleared | — | → Monitoring | — |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯配置/逻辑；阈值均为 config 层（非 balance）调优杆，由 `config/anticheat_config.json` 持有。开放调优项见 §0 索引：
+- `S24-ND1` gold_per_wave_max — NEEDS-DESIGN (owner: S24, due: P4-tuning)
+- `S24-ND2` wood_per_wave_max — NEEDS-DESIGN (owner: S24, due: P4-tuning)
+- `S24-ND3` score_jump_max — NEEDS-DESIGN (owner: S24, due: P4-tuning)
+- `S24-ND4` best_wave_jump_max — NEEDS-DESIGN (owner: S24, due: P4-tuning)
+- `S24-ND5` check_interval_ms — NEEDS-DESIGN (owner: S24, due: P4-tuning)
+- `S24-ND6` flag_rate_alert — NEEDS-DESIGN (owner: S24, due: P4-tuning)
+
+## 6. 冲突与待裁定
+
+### 6.1 S24-C1 深惩罚（ban/revert）开启时机（待裁定）
+- **current_implementation**：`punish_mode=mark`（首版仅标记，不惩罚），避免误伤。
+- **pending_decision**：DO 裁定是否在合规与误伤评估通过后开启 `ban` / `revert` 深惩罚。
+- **owner**：S24
+
+### 6.2 冲突汇总
+除 S24-C1 外，本系统无其它 DO 待裁定冲突项；开放调优项见 §0 索引 / §5.6。

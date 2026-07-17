@@ -1,6 +1,8 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S7 HUD / 操控系统 (HUD / Control System)
 
+## 0. 元数据头
+
 > 归属域：A 核心战斗域 · 层级/优先级：MVP / P1 · 关联 F 码：F9 · 关联：GDD §9（系统交互矩阵；"适配"详见 GDD §8）；SYSTEM_BREAKDOWN §S7
 > 状态：v0.2-detailed · 日期 2026-07-17
 > 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
@@ -163,3 +165,84 @@ top_bar_h,speed_2x_free,min_touch,safe_margin,show_lives_in_top,speed_levels,pau
 | 暂停弹层底 | 1（静态） | 750×1334 | PNG | 九宫 |
 
 > 图标分包见 S19；震动反馈接 S22/S23。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| top_bar_h | int | `hud_config.top_bar_h`（本系统 §3） |
+| min_touch | int | `hud_config.min_touch`（本系统 §3） |
+| safe_margin | int | `hud_config.safe_margin`（本系统 §3） |
+| speed_levels | int[] | `hud_config.speed_levels`（本系统 §3） |
+| gold_value | int | S3 经济系统实时值 |
+| wave_text | string | S4 波次系统实时值 |
+| wood_value | int | S3 经济系统实时值 |
+| lives_value | int | S6 漏怪系统实时值 |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| top_bar_display | 引擎 Node | 顶栏渲染节点（7 元素：金/波/木/Lives） |
+| bottom_bar_display | 引擎 Node | 底栏渲染节点（2x 加速、暂停） |
+| speed_event | event | 广播 game_speed 至 S4/S5 |
+| pause_event | event | 广播暂停至 S20 |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S7 | S3 | `getGoldValue()` / `getWoodValue()` | in | 每帧聚合顶栏金/木 |
+| S7 | S4 | `getWaveText()` | in | 波次文本 |
+| S7 | S6 | `getLivesValue()` | in | 当前生命数 |
+| S7 | S4 | `setGameSpeed(speed)` | out | 加速切换广播 |
+| S7 | S5 | `setGameSpeed(speed)` | out | 加速切换广播 |
+| S7 | S20 | `onPause()` | out | 暂停广播 |
+| S20 | S7 | `onResume(speed)` | in | 恢复时带回之前倍速 |
+| S20 | S4 | `setGameSpeed(speed)` | out | 恢复后重设速度 |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 聚合源返回 null / NaN | 显示"—"；不崩 | S3/S4/S6 |
+| E02 | `hud_config` 配置缺失 | 用默认布局全集 + 记 S25 | S25 |
+| E03 | `hud_config.speed_levels` 损坏 | 默认 [1,2] | S7 |
+| E04 | `min_touch` < 64 | 钳制 64 | S24 |
+| E05 | `safe_margin` 为负 | 钳制 0 | S24 |
+| E06 | 切后台 onHide (S20) | 暂停帧；onShow 恢复(回 1x 或记忆) | S20 |
+
+### 5.5 状态转换表（自 §2.2 stateDiagram-v2）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Running1x | 开局/继续 | → Running1x | 默认 1x |
+| Running1x | 点 2x | → Running2x | 广播 S4/S5 设 speed=2 |
+| Running2x | 点 2x | → Running1x | 广播 S4/S5 设 speed=1 |
+| Running1x | 点暂停 | → Paused | 广播 S20 暂停 |
+| Running2x | 点暂停 | → Paused | 广播 S20 暂停 |
+| Paused | 继续 | → Running1x | 回默认 1x |
+| Paused | 继续(记忆) | → Running2x | 记忆 2x 恢复 |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| hud_top_bar_h / hud_min_touch / hud_safe_margin / hud_design_width / hud_design_height / hud_speed_2x_free / hud_show_lives_in_top / hud_speed_levels / hud_pause_confirm / hud_vibrate_on_leak | balance/S07_hud.json |
+
+> 本系统 §3 原无 `[PLACEHOLDER]`，全部为已定 UX 默认结构值，故无 NEEDS-DESIGN 数值项。
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| 加速收费策略 | `hud_speed_2x_free=true`，加速免费 | 若后续运营需收费（S26 接入），改该字段为 false 并接 S26 扣费 | S26（B 域） |
+| 暂停确认 | `hud_pause_confirm=false`，点即暂停 | 若需要防误触（高难关卡），改为 true + 确认弹窗 | UX（B 域） |
+
+> 其余字段无跨系统冲突；所有 UX 默认值锁定于 `balance/S07_hud.json`（10 个 param_id），无 NEEDS-DESIGN（本 A 域范围）。

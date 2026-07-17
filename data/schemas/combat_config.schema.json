@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "combat_config",
+  "type": "object",
+  "properties": {
+    "armor_reduce": {
+      "type": "number"
+    },
+    "chain_count": {
+      "type": "number"
+    },
+    "chain_range": {
+      "type": "number"
+    },
+    "counter_matrix": {
+      "type": "number"
+    },
+    "damage_formula": {
+      "type": "number"
+    },
+    "dmg_round": {
+      "type": "number"
+    },
+    "electric_vs_air_override": {
+      "type": "number"
+    },
+    "poison_dps": {
+      "type": "number"
+    },
+    "poison_duration": {
+      "type": "number"
+    },
+    "projectile_speed": {
+      "type": "number"
+    },
+    "slow_duration": {
+      "type": "number"
+    },
+    "slow_factor": {
+      "type": "number"
+    },
+    "splash_radius": {
+      "type": "number"
+    },
+    "status_stack_rule": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "attribute_def",
+  "type": "object",
+  "properties": {
+    "atk_speed_min": {
+      "type": "number"
+    },
+    "dmg_min": {
+      "type": "number"
+    },
+    "hp_min": {
+      "type": "number"
+    },
+    "move_speed_min": {
+      "type": "number"
+    },
+    "projectile_speed_min": {
+      "type": "number"
+    },
+    "range_min": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

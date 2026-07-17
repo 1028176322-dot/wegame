@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "meta_config",
+  "type": "object",
+  "properties": {
+    "display_meta_res": {
+      "type": "number"
+    },
+    "node_grid_spacing": {
+      "type": "number"
+    },
+    "upgrade_leak_tolerance_effect": {
+      "type": "number"
+    },
+    "upgrade_start_gold_effect": {
+      "type": "number"
+    },
+    "upgrade_wood_gain_effect": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

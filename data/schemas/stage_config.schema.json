@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "stage_config",
+  "type": "object",
+  "properties": {
+    "boss_count": {
+      "type": "number"
+    },
+    "boss_every": {
+      "type": "number"
+    },
+    "hp_scale": {
+      "type": "number"
+    },
+    "reward_gold_clear": {
+      "type": "number"
+    },
+    "reward_meta_first": {
+      "type": "number"
+    },
+    "reward_meta_repeat": {
+      "type": "number"
+    },
+    "speed_scale": {
+      "type": "number"
+    },
+    "total_count": {
+      "type": "number"
+    },
+    "unlock_level": {
+      "type": "number"
+    },
+    "wave_count": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,22 +1,28 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S26 变现系统 (Monetization System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：探索 / P3 · 关联 F 码：F19 · 关联：SYSTEM_BREAKDOWN §S26 · GDD §8（合规）/ FEATURE_SCOPE §7#1
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：模块表 5 行 + 4 异常 + 单表 6 字段，上限写死示例）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：探索 / P3
+- 关联 F 码：F19
+- 关联系统：S21（flag_monetize 总控）、S3（发奖/硬隔离）、S8（失败复活层）、S24（防刷协同）、wx 广告/分享
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：wx 广告/分享 API；S21 远程开关；S3 经济接入（受控）
+- NEEDS-DESIGN 索引：S26-ND1（ad_daily_limit，NEEDS-DESIGN owner:S26 due:P4-tuning）｜S26-ND2（ad_wood_reward，NEEDS-DESIGN owner:S26 due:P4-tuning）｜S26-ND3（revive_lives_gain，NEEDS-DESIGN owner:S26 due:P4-tuning）｜S26-ND4（share_reward，NEEDS-DESIGN owner:S26 due:P4-tuning）｜S26-ND5（min_session，NEEDS-DESIGN owner:S26 due:P4-tuning）｜S26-ND6（ad_cooldown，NEEDS-DESIGN owner:S26 due:P4-tuning）
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
 | §1 UI 布局 | 3 行组件（坐标粗略） | 加 z 层级、**奖励层/失败层像素线框（750×1334 坐标）**、交互流程图 |
 | §2 逻辑功能 | 模块表 5 行 + 4 异常 | 加**开关控制状态机**、**广告/分享时序图**、**异常边界用例表（12 类，含开关 off 硬隔离/广告未完成）** |
-| §3 配置表 | 单表 6 字段（上限写死） | `monetize_config` 扩字段 + **多行示例**，上限全部改 `[PLACEHOLDER]` |
+| §3 配置表 | 单表 6 字段（上限写死） | `monetize_config` 扩字段 + **多行示例**，上限全部改 `value_ref`/`NEEDS-DESIGN` 指针 |
 | §4 美术资源 | 4 行占位 | 加帧数/分辨率/格式/切片（广告/复活/分享按钮） |
 
-> 红线：v0.1 写死 `ad_daily_limit:5`/`ad_wood_reward:20`/`share_reward:10`/`min_session:30`，违反"不捏造广告频次上限/奖励量"。v0.2 全部改 `[PLACEHOLDER]` + 调优杆。**核心约束不变：开关 default off，off 时经济零破环产出（硬隔离）。**
+> 红线：v0.1 写死 `ad_daily_limit:5`/`ad_wood_reward:20`/`share_reward:10`/`min_session:30`，违反"不捏造广告频次上限/奖励量"。v0.2 全部改 `NEEDS-DESIGN` + 调优杆。**核心约束不变：开关 default off，off 时经济零破环产出（硬隔离）。**
 
 ---
 
@@ -172,29 +178,29 @@ sequenceDiagram
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 / 调优杆 |
 |------|------|----------|--------|---------------|
 | enabled | bool | false | false | 总开关（**default off**，镜像 S21.flag_monetize） |
-| ad_daily_limit | int | 1–20 | `[PLACEHOLDER]` | 每日广告上限 **调优杆** |
-| ad_wood_reward | int | 1–200 | `[PLACEHOLDER]` | 看广告得木 **调优杆** |
+| ad_daily_limit | int | 1–20 | S26-ND1 · NEEDS-DESIGN (owner: S26, due: P4-tuning) | 每日广告上限 **调优杆** |
+| ad_wood_reward | int | 1–200 | S26-ND2 · NEEDS-DESIGN (owner: S26, due: P4-tuning) | 看广告得木 **调优杆** |
 | revive_enabled | bool | false | false | 复活开关 |
-| revive_lives_gain | int | 1–10 | `[PLACEHOLDER]` | 复活回补 Lives **调优杆** |
-| share_reward | int | 0–200 | `[PLACEHOLDER]` | 分享得奖 **调优杆** |
-| min_session | int | 0–300 | `[PLACEHOLDER]` | 最短局后才可广告(s) **调优杆** |
-| ad_cooldown | int | 0–600 | `[PLACEHOLDER]` | 两次广告间隔(s) **调优杆** |
+| revive_lives_gain | int | 1–10 | S26-ND3 · NEEDS-DESIGN (owner: S26, due: P4-tuning) | 复活回补 Lives **调优杆** |
+| share_reward | int | 0–200 | S26-ND4 · NEEDS-DESIGN (owner: S26, due: P4-tuning) | 分享得奖 **调优杆** |
+| min_session | int | 0–300 | S26-ND5 · NEEDS-DESIGN (owner: S26, due: P4-tuning) | 最短局后才可广告(s) **调优杆** |
+| ad_cooldown | int | 0–600 | S26-ND6 · NEEDS-DESIGN (owner: S26, due: P4-tuning) | 两次广告间隔(s) **调优杆** |
 | position | enum | lobby/ingame/fail | ingame | 广告入口位置 |
 
-### 3.2 示例数据（多行，上限/奖励 `[PLACEHOLDER]`）
+### 3.2 示例数据（多行，上限/奖励 `NEEDS-DESIGN`）
 **示例 A：默认关（首发必为关）**
 ```json
-{ "enabled": false, "ad_daily_limit": "[PLACEHOLDER]", "ad_wood_reward": "[PLACEHOLDER]",
-  "revive_enabled": false, "revive_lives_gain": "[PLACEHOLDER]", "share_reward": "[PLACEHOLDER]",
-  "min_session": "[PLACEHOLDER]", "ad_cooldown": "[PLACEHOLDER]", "position": "ingame" }
+{ "enabled": false, "ad_daily_limit": "S26-ND1", "ad_wood_reward": "S26-ND2",
+  "revive_enabled": false, "revive_lives_gain": "S26-ND3", "share_reward": "S26-ND4",
+  "min_session": "S26-ND5", "ad_cooldown": "S26-ND6", "position": "ingame" }
 ```
 **示例 B：开启试验（限次 + 复活）**
 ```json
-{ "enabled": true, "ad_daily_limit": "[PLACEHOLDER]", "ad_wood_reward": "[PLACEHOLDER]",
-  "revive_enabled": true, "revive_lives_gain": "[PLACEHOLDER]", "share_reward": "[PLACEHOLDER]",
-  "min_session": "[PLACEHOLDER]", "ad_cooldown": "[PLACEHOLDER]", "position": "ingame" }
+{ "enabled": true, "ad_daily_limit": "S26-ND1", "ad_wood_reward": "S26-ND2",
+  "revive_enabled": true, "revive_lives_gain": "S26-ND3", "share_reward": "S26-ND4",
+  "min_session": "S26-ND5", "ad_cooldown": "S26-ND6", "position": "ingame" }
 ```
-> 所有上限/奖励标 `[PLACEHOLDER]`，经合规 + S25 观测（确保开关 on 时通胀仍在 GDD §6 阈值内）裁定；v0.1 写死的 `5/20/10/30` 已移除。**硬隔离不变**：`enabled=false` 时 S3 不接收任何外部产出。
+> 所有上限/奖励（标 `S26-ND1`~`S26-ND6`）经合规 + S25 观测（确保开关 on 时通胀仍在 GDD §6 阈值内）裁定；v0.1 写死的 `5/20/10/30` 已移除。**硬隔离不变**：`enabled=false` 时 S3 不接收任何外部产出（见 §5.3 / §6.1）。
 
 ---
 
@@ -210,3 +216,84 @@ sequenceDiagram
 | 奖励飘字 | UI 文本 | 1（位图字） | 120×48 | FNT | 单帧 "+木×N" | 发奖反馈 |
 
 > 开关 off 时全部隐藏；广告播放层由微信平台提供，本系统不自绘。合规审查随平台政策更新（FEATURE_SCOPE §7#1）。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| ad_daily_limit | int | `monetize_config.ad_daily_limit`（S26-ND1） |
+| ad_wood_reward | int | `monetize_config.ad_wood_reward`（S26-ND2） |
+| revive_lives_gain | int | `monetize_config.revive_lives_gain`（S26-ND3） |
+| share_reward | int | `monetize_config.share_reward`（S26-ND4） |
+| min_session | int | `monetize_config.min_session`（S26-ND5） |
+| ad_cooldown | int | `monetize_config.ad_cooldown`（S26-ND6） |
+| flag_monetize | bool | S21 `remote_config.flag_monetize`（总控） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| daily_count | int | 当日成功发奖计数 |
+| grant_result | bool | S3 发奖成功/失败 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S26 | S21 | `isEnabled(flag_monetize)` | in | 开关总控 |
+| S26 | wx | `showRewardedAd` | out | 播广告 |
+| S26 | S3 | `grantWood` / 复活 | out | 发奖（受控） |
+| S26 | S24 | 频率标记 | out | 防刷协同 |
+| S8 | S26 | 复活入口 | in | 失败层 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 开关 off 仍调用 | 硬隔离：拒绝产出 | S3 |
+| E2 | 广告未完成 | onClose(isEnded=false)→不发奖 | — |
+| E3 | 日上限达 | 入口灰显/隐藏 | — |
+| E4 | 广告拉取失败 | 提示稍后，不发奖 | wx |
+| E5 | 开关动态切换 | 结算后不再显入口 | S21 |
+| E6 | 复活时 Lives 已 0 | 回补续局不重复结算 | S8 |
+| E7 | 分享回调失败 | 不发奖不计数 | wx |
+| E8 | 重复点击 | 防抖单次锁 | — |
+| E9 | 最短局限制 | 不显入口 | — |
+| E10 | 奖励写 S3 失败 | 回退计数，提示重试 | S3 |
+| E11 | 儿童/合规 | 入口不显 | — |
+| E12 | 防刷协同 | 计数+S24 标记 | S24 |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Disabled | flag_monetize=false | → NoUI | 不创建/不接 S3 |
+| [*] | flag_monetize=true | → Enabled | — |
+| Enabled | — | → Showing | 显入口 |
+| Showing | 点广告 | → AdLoading | — |
+| Showing | 点分享 | → Sharing | — |
+| AdLoading | wx 拉起 | → AdPlaying | — |
+| AdPlaying | 完整看完 | → Rewarded | — |
+| AdPlaying | 跳过/失败 | → NoReward | 不发奖 |
+| Rewarded | — | → Counted | 日计数+1 发奖 |
+| NoReward | — | → Showing | 不发奖 |
+| Sharing | 分享完成 | → Shared | — |
+| Shared | — | → Counted | — |
+| Counted | 达日上限 | → LimitCheck→Hidden | 灰显 |
+| Counted | 未达上限 | → Showing | 继续 |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯配置/逻辑；上限/奖励均为 config 层（非 balance）调优杆，由 `config/monetize_config.json` 持有。开放调优项见 §0 索引：
+- `S26-ND1` ad_daily_limit — NEEDS-DESIGN (owner: S26, due: P4-tuning)
+- `S26-ND2` ad_wood_reward — NEEDS-DESIGN (owner: S26, due: P4-tuning)
+- `S26-ND3` revive_lives_gain — NEEDS-DESIGN (owner: S26, due: P4-tuning)
+- `S26-ND4` share_reward — NEEDS-DESIGN (owner: S26, due: P4-tuning)
+- `S26-ND5` min_session — NEEDS-DESIGN (owner: S26, due: P4-tuning)
+- `S26-ND6` ad_cooldown — NEEDS-DESIGN (owner: S26, due: P4-tuning)
+
+## 6. 冲突与待裁定
+
+### 6.1 已裁定设计规则（非待裁定）
+- 硬隔离（E1）：`enabled=false` 时本系统拒绝任何外部产出接入 S3，经济零破环。current_implementation 与 pending_decision 一致，无需 DO 裁定。
+
+### 6.2 冲突汇总
+本系统无 DO 待裁定冲突项；开放调优项见 §0 索引 / §5.6。

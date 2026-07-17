@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "enemy_drop",
+  "type": "object",
+  "properties": {
+    "boss_max": {
+      "type": "number"
+    },
+    "boss_min": {
+      "type": "number"
+    },
+    "boss_rate": {
+      "type": "number"
+    },
+    "max_air": {
+      "type": "number"
+    },
+    "max_heavy": {
+      "type": "number"
+    },
+    "max_light": {
+      "type": "number"
+    },
+    "max_magic_immune": {
+      "type": "number"
+    },
+    "min_air": {
+      "type": "number"
+    },
+    "min_heavy": {
+      "type": "number"
+    },
+    "min_light": {
+      "type": "number"
+    },
+    "min_magic_immune": {
+      "type": "number"
+    },
+    "rate_air": {
+      "type": "number"
+    },
+    "rate_heavy": {
+      "type": "number"
+    },
+    "rate_light": {
+      "type": "number"
+    },
+    "rate_magic_immune": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

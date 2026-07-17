@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "subpackage_config",
+  "type": "object",
+  "properties": {
+    "download_timeout_s": {
+      "type": "number"
+    },
+    "retry_max": {
+      "type": "number"
+    },
+    "size_limit_kb": {
+      "type": "number"
+    },
+    "total_pkg_limit_mb": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

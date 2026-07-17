@@ -1,14 +1,21 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S18 存档系统 (Save System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：MVP / P1 · 关联 F 码：F11 F32 · 关联：SYSTEM_BREAKDOWN §S18 · GDD §8（适配）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：模块表 + 单表 + 极简异常）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：MVP / P1
+- 关联 F 码：F11 F32
+- 关联系统：S20（onHide 触发存档）、S22（设置落地）、S11（元进度）、S08（结算）、S24（完整性校验）、S29（玩家等级持久化）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：`wx.setStorage` / `wx.getStorage`；S24 checksum；S20 onHide/onShow 事件
+- NEEDS-DESIGN 索引：S18-ND1（存储上限，NEEDS-DESIGN owner:S18 due:P3-platform）｜S18-ND2（备份保留份数，NEEDS-DESIGN owner:S18 due:P4-tuning）｜S18-ND3（完整性校验算法，NEEDS-DESIGN owner:S18 due:P3-design）
+
 > **v0.2-rev（耦合重构）：** 按 DO 新规明确——**木(wood) 为 session 货币，绝不写入本存档**。存档仅含：元进度(meta_res/unlocked/best_*)、设置(settings，含新增 `auto_cast_active` 见 S22)、签到、成就、引导标记等。木在每局开始恒为 0、局内仅由怪掉(S04)+应急兑换(S03)产生、局结束即弃，不进入 `save_schema`。
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
@@ -252,7 +259,7 @@ sequenceDiagram
 | 1 | 2 | `add_best_tower_level` | 新增最高塔等级字段，默认 0 |
 | 2 | 3 | `split_signin_claimed` | signin.claimed 由 bool 改 int[] |
 
-> 调优杆：`[PLACEHOLDER]` 存储上限（微信约 10MB 本地，以平台当前规范为准）；`[PLACEHOLDER]` 备份保留份数（默认 1 份）；`[PLACEHOLDER]` 完整性校验算法（本地基础校验，深防作弊见 S24）。
+> 调优杆（均未设计，见 §0 索引 / §5.6 / §6）：`S18-ND1` 存储上限（微信本地配额，以平台当前规范为准）；`S18-ND2` 备份保留份数（默认 1 份）；`S18-ND3` 完整性校验算法（本地基础校验，深防作弊见 S24）。
 
 ---
 
@@ -267,3 +274,89 @@ sequenceDiagram
 | （正常态） | — | — | — | — | — | 无美术，静默读写 |
 
 > 纯逻辑系统；弹窗样式、按钮、遮罩均复用通用 UI 组件库（S10/S08），本系统不新增美术规范，仅声明挂载层级与坐标。图标切片遵循微信小游戏单图 ≤ 128KB、合图用图集（见 S19 F34）。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| key | string | 调用方传入（如 `save_main` / `save_backup`） |
+| val | object | 调用方传入（PlayerSave 各域，结构见 §3.1 `save_schema`） |
+| schema_version | int | `save_schema.schema_version` |
+| transform | string | `save_migration.transform`（代码内表，非配置） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| PlayerSave | object | 符合 `save_schema` 的玩家存档对象 |
+| save_backup | object | 最近 1 份备份副本（rollback 用） |
+| checksum | string | 完整性校验和（本地基础，深防作弊见 S24） |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S20 | S18 | `save(latest)` | in | onHide 存最新进度 |
+| S22 | S18 | `save(settings)` | in | 设置落地 |
+| S8 | S18 | `save(settlement)` | in | 局内结算结果落档 |
+| S11 | S18 | `save(meta_res/unlocked)` | in | 元进度落档 |
+| S29 | S18 | `save(player_level/current_xp)` | in | 等级/经验跨局持久化 |
+| S18 | S24 | `validateChecksum()` | out | 读档完整性校验（联动） |
+| S18 | wx | `setStorage` / `getStorage` | out | 平台本地存储读写 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 首启无档 | 写默认 `save_schema` v1，进引导 | — |
+| E2 | 坏档（JSON 错） | 尝试 backup→仍败弹 z=70 | S24 |
+| E3 | 存储满（≈10MB） | 清非关键缓存+压缩重试；仍败提示 | — |
+| E4 | 写中途强杀 | 启动校验 checksum，不完整用 backup | — |
+| E5 | 迁移脚本失败 | 停迁移载 backup；无则弹 z=70 | — |
+| E6 | 并发写 | 写锁/Promise 队列串行 | S20/S8 |
+| E7 | 写中读 | 读锁/返回上次完整对象 | — |
+| E8 | 版本号异常 | 视为损坏→backup/重置 | — |
+| E9 | 字段类型不符 | 逐字段默认兜底 | — |
+| E10 | 单值超容 | 截断+告警 S25 | S25 |
+| E11 | wx API 失败 | 重试 1 次→补存队列（onShow 补） | — |
+| E12 | 局部损坏 | 好字段保留/坏字段重置默认 | — |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Idle | `load()` | → Reading | 入读流程 |
+| Reading | 取到原始串 | → Parsing | — |
+| Parsing | JSON 解析失败 | → Corrupt | — |
+| Parsing | 解析 OK | → Verifying | — |
+| Verifying | version 匹配 | → Ready | 返回对象 |
+| Verifying | version 旧 | → Migrating | 执行迁移脚本链 |
+| Migrating | 迁移成功且写回 | → Ready | — |
+| Migrating | 迁移脚本抛错 | → Corrupt | — |
+| Corrupt | 弹 z=70 | → PromptUser | 显示损坏确认 |
+| PromptUser | 选"回退" | → Restored | 载 backup |
+| PromptUser | 选"重置" | → Fresh | 写默认档 |
+| Restored / Fresh | — | → Ready | — |
+| Ready | 返回对象 | → [*] | — |
+| Idle | `save()` | → Writing | 入写流程 |
+| Writing | 取写锁 | → Locked | — |
+| Locked | `wx.setStorage` 成功 | → Stored | — |
+| Stored | 写 backup 副本 | → BackedUp | — |
+| BackedUp | 释放锁 | → Idle | — |
+| Stored | `wx.setStorage` fail | → WriteFailed | 告警+重试队列（回前台补） |
+| WriteFailed | — | → Idle | — |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯逻辑/配置：`save_schema` 为结构契约，运行时数值由 `config/save_main`（非 balance）持有。开放调优项见 §0 索引：
+- `S18-ND1` 存储上限 — NEEDS-DESIGN (owner: S18, due: P3-platform)
+- `S18-ND2` 备份保留份数 — NEEDS-DESIGN (owner: S18, due: P4-tuning)
+- `S18-ND3` 完整性校验算法 — NEEDS-DESIGN (owner: S18, due: P3-design)
+
+## 6. 冲突与待裁定
+
+### 6.1 S18-C1 存档迁移策略（待裁定）
+- **current_implementation**：v1 `save_schema` 已上线；`save_migration` 仅规划 v1→v2 链（新增 `best_tower_level`、拆分 `signin.claimed` 为 int[]），**尚未启用**。
+- **pending_decision**：DO 裁定是否启用 v2 及其迁移顺序（见 §3.2 示例链）；若启用须保证旧档可回退。
+- **owner**：S18
+
+### 6.2 冲突汇总
+本系统无 DO 待裁定**设计冲突**项；其余开放项均为调优杆，统一以 NEEDS-DESIGN 跟踪（见 §0 索引 / §5.6）。

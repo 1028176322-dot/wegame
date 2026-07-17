@@ -248,7 +248,7 @@ sequenceDiagram
 
 > **红线（木排除）**：`reward` **不含木头**。木为 session 货币（S03），仅来自怪物掉落(S04)+受限应急兑换，不持久化、不在通关奖励发放。关卡奖励仅含元进度(meta) + 一次性清场金(gold_clear，session 结算入 meta)。任何"通关发木"需求须回 Decision Owner 裁定，否则违反 S03 经济铁律。
 
-**多行示例数据（CSV 头部 + 3 行；平衡字段以 `[PLACEHOLDER]` 占位，结构字段给示例值；enemy_id 为 S31  provisional 契约，待 S31 定稿）**
+**多行示例数据（CSV 头部 + 3 行；数值列映射至 balance/S32_stage_config.json；结构字段给示例值；enemy_id 为 S31 provisional 契约，待 S31 定稿）**
 
 ```csv
 stage_id,stage_index,stage_name,map_variant,wave_table,enemy_composition,boss_schedule,difficulty_mod,reward,unlock_level,art_pack
@@ -279,14 +279,14 @@ st_12,12,终焉之环,map_05,"{wave_set_id:ws_lv12,wave_range:[1,30]}","{1:[{e_g
 | boss_every_n_waves | int | 5–20 | 10 | 每 N 波出 Boss（节拍同 S4 `boss_every`）；无尽无"末波"，Boss 周期来袭。`stg_endless_boss_every` |
 | score_weights | json | {w_wave, w_kill} | {100, 5} | 计分权重：`score = wave_reached × w_wave + total_kills × w_kill`。初值 `stg_endless_score_wave` / `stg_endless_score_kill` |
 | reward_per_wave | json | {gold, wood} | {10, 2} | 每波结算奖励（总额 = per_wave × wave_reached）：`gold`→元进度(S11/S08)，`wood`→session 木(S03)。初值 `stg_endless_reward_gold` / `stg_endless_reward_wood` |
-| unlock_level | int | 关联 S29 `player_level` | `[PLACEHOLDER]`(初值 1，见 `stg_endless_unlock_level`) | 进入无尽所需 S29 等级（与 S14 入口解锁**叠加**为双闸门）。`[PLACEHOLDER]` 待 S29 等级曲线校验 |
+| unlock_level | int | 关联 S29 `player_level` | `value_ref: balance/S32_stage_config.json#stg_endless_unlock_level`(初值 1，见 `stg_endless_unlock_level`) | 进入无尽所需 S29 等级（与 S14 入口解锁**叠加**为双闸门）。初值见 balance 待 S29 等级曲线校验 |
 | max_wave_cap | int | 0=无 / N>0 | 0 | 无尽封顶波数；`0`=真无限（无上限），`N>0`=软封顶（防极端数值/时长）。结构封顶另由 S4 `wave_total_waves` 上限兜底防溢出 |
 
 **CSV 单行示例（结构字段给示例值，数值初值见 balance）**
 
 ```csv
 mode_id,stage_type,map_variant,hp_scale_formula,speed_scale_formula,boss_every_n_waves,score_weights,reward_per_wave,unlock_level,max_wave_cap
-endless,endless,map_01,"1 + (wave-1) × k_hp","1 + (wave-1) × k_speed",10,"{w_wave:100,w_kill:5}","{gold:10,wood:2}",[PLACEHOLDER]1,0
+endless,endless,map_01,"1 + (wave-1) × k_hp","1 + (wave-1) × k_speed",10,"{w_wave:100,w_kill:5}","{gold:10,wood:2}",value_ref:balance/S32_stage_config.json#stg_endless_unlock_level,0
 ```
 
 > ⚠ **一致性提示（非阻塞）**：standard 的 `reward` 铁律"不含木头"（S03 木为 session、不持久化）；无尽 `reward_per_wave.wood` 是 DO 裁定的显式例外——无尽结尾仍发 session 木。实现上建议：`wood` 来自本局击杀掉木(S04/S31，即 session 木主源)，`reward_per_wave.wood` 作为结算时一次性额外木发放到**下一局起始 session 池**（仍非持久化）；若 DO 意图"结算后持久化发木"，则与 S03 铁律冲突，须回 DO 确认。本任务不修改 S03。
@@ -312,7 +312,7 @@ endless,endless,map_01,"1 + (wave-1) × k_hp","1 + (wave-1) × k_speed",10,"{w_w
 |---|---|---|---|---|
 | st_01 | stage_bg_01 | e_goblin, e_light, e_air | b_goblin_king | diff_low |
 | st_02 | stage_bg_02 | +e_heavy | b_goblin_king | diff_low |
-| st_03 | stage_bg_03 | +e_poison | b_goblin_king, b_lava_demon | diff_mid |
+| st_03 | stage_bg_03 | +e_heavy_poison | b_goblin_king, b_lava_demon | diff_mid |
 | st_04 | stage_bg_04 | +e_magic_immune | b_lich | diff_mid |
 | st_05 | stage_bg_05 | 全 5 常规 + air | b_goblin_king, b_lich | diff_mid |
 | st_06 | stage_bg_06 | 全常规 + air | b_goblin_king, b_lava_demon | diff_mid |
@@ -327,31 +327,105 @@ endless,endless,map_01,"1 + (wave-1) × k_hp","1 + (wave-1) × k_speed",10,"{w_w
 
 ---
 
-## 5. 依赖 / 边界 / 冲突说明
+## 5. 实现契约
 
-### 5.1 依赖
-- **S01 地图**：`map_variant` → `map_config.map_id`（路径/塔位/主题）。
-- **S04 波次**：`wave_table` → `wave_config`（逐波结构：count/interval/hp/armor/is_boss）。
-- **S04 波次（无尽生成）**：endless 模式**不引用** `wave_table`，改由 S04 按 `wave` 序号代入 `endless_config` 难度公式**程序化生成**敌群（count 用 S04 `wave_count` 公式、hp/speed 用 `endless_config` 公式、敌种引用 S31 `enemy_id`）——详见 S04 §2.5。
-- **S31 敌群原型（待建）**：`enemy_composition`/`boss_schedule` 的 `enemy_id` 为 S31 原型表外键；S31 须提供 `enemy_id → {base_hp, armor_type, skin_res, boss_mechanic}`。**S31 当前未建，是 S32 的唯一硬依赖阻塞项**。
-- **S29 玩家等级**：`unlock_level` → `player_level_config` / `unlock_config`（等级门槛）。
-- **S14 关卡壳**：共享 `level_id↔stage_id`；`pre_level` 串行解锁 + `diff_mult`/`reward_mult` 粗调旋钮。
-- **S11 元进度**：`reward.meta_*` → 元资源入账；通关解锁链写 S18。
-- **S18 存档**：解锁进度 / 通关态持久化。
-- **S19 分包**：`art_pack` 美术资源加载。
-- **S8 结算 / S7 HUD / S20 生命周期 / S24 防作弊 / S25 分析**：跨系统回调。
+### 5.1 输入数据结构
 
-### 5.2 边界 / 明确不做
-- 不做 UGC 关卡（见 FEATURE_SCOPE §6）。
-- 不做关卡内随机种子（首版固定，见 SYSTEM_BREAKDOWN §S14）。
-- 不做"通关发木"（木为 session，S03 铁律）。
-- 不重复持有 S14 壳层字段（map_id/wave_set/diff_mult/reward_mult 重定义为引用/旋钮，见 §0）。
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| stage_id | string | `stage_config.stage_id`（本系统） |
+| player_level | int | S29 玩家等级 |
+| pre_level_cleared | bool | S14 前置关卡通关状态 |
+| map_variant | string | `stage_config.map_variant`（→ S1 `map_id`） |
+| wave_table | json | `stage_config.wave_table`（→ S4 `wave_config`） |
+| enemy_composition | json | `stage_config.enemy_composition`（→ S31 `enemy_id`） |
+| diff_mult | float | S14 运营粗调旋钮 |
 
-### 5.3 冲突与一致性说明（务必关注）
-1. **S32 vs S14 字段重叠（潜在双重定义）**：S14 `level_config` 已含 `map_id/wave_set/diff_mult/reward_mult`。本系统将 S14 这些字段**重定义为"对 S32 的引用 + 运营粗调旋钮"**，S32 持有逐关权威内容。实现时以本系统 `stage_config` 为内容真相源；S14 文档侧需回填语义对齐（**Decision Owner 裁定**，本任务不修改 S14）。
-2. **难度双重缩放**：`difficulty_mod.hp_scale/speed_scale`（S32 作者化曲线）× `diff_mult`（S14 运营粗调）= 最终。二者乘算，不互相覆盖；钳制区间 `[1.0,3.0]`(hp)/`[1.0,2.0]`(speed) 防止失控。
-3. **奖励与 S14.level_reward 重复**：`reward.meta_first/meta_repeat` 为权威值；S14 `level_reward` 视为其派生视图（不另定义数值）。
-4. **NEEDS-DESIGN（唯一硬项）**：**S31 敌群原型系统未建**，`enemy_id` 目录（`e_goblin/e_light/e_heavy/e_poison/e_magic_immune/e_air` + `b_goblin_king/b_lich/b_lava_demon/b_wyrm` 等）为 provisional 契约。S32 的 `enemy_composition`/`boss_schedule` 在 S31 定稿前无法校验 `enemy_id` 合法性（对应 E04 异常兜底）。**须先建 S31 并冻结 enemy_id 目录，S32 才能关闭 E04 兜底**。
-5. **unlock_level 与 S29 等级曲线耦合**：`unlock_level` 初值（1,1,1,2,2,2,3,3,3,4,4,4）依赖 S29 `player_level` 可达性；S29 `xp_required`/max_level 为 `[PLACEHOLDER]`，故 unlock_level 初值为暂定值，待 S29 调优后回填（非 NEEDS-DESIGN，已给初值，标注待校验）。
-6. **关卡总数初值**：首版 `stage_total_count = 12`（10–20 区间内），为可调初值，非 NEEDS-DESIGN。
-7. **endless_config vs standard stage_config（并列双数据）**：endless 不引用 standard 的 `wave_table`/`enemy_composition`/`boss_schedule`，改由 S04 程序化生成；二者为并列数据，互不重叠，避免双重定义。缩放系数 `k_hp`/`k_speed` 与 Boss 周期/`score_weights`/`reward_per_wave`/`unlock_level` 的**单一真理源在 `endless_config`**（balance `stg_endless_*`），S04 生成侧仅消费、不独立调优（见 balance/S04_wave.md 的 `endless_*` 镜像说明）。
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| stage_loaded | event | 关卡内容就绪（→ S1 地图 + S4 波次 + S31 敌群） |
+| preview_data | json | 关卡内信息预览（波数/敌种/Boss/难度/解锁要求） |
+| clear_reward | {meta_first, meta_repeat, gold_clear} | 通关奖励 → S11 |
+| unlock_next | bool | 下一关解锁标志 → S14/S18 |
+| settlement_type | enum | standard / endless |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S14 | S32 | `loadStageContent(stage_id)` | in | 点开始后加载关卡内容 |
+| S32 | S1 | `setMapVariant(map_variant)` | out | 实例化地图变体 |
+| S32 | S4 | `setWaveTable(wave_table)` | out | 编排波次数据 |
+| S32 | S31 | `getEnemyConfig(enemy_id)` | in | 取敌原型属性 |
+| S32 | S29 | `checkUnlockLevel(required_lv)` | in | 校验等级门槛 |
+| S32 | S14 | `getDiffMult()` | in | 查询运营粗调倍率 |
+| S32 | S18 | `checkPreLevelCleared(stage_id)` | in | 查询前置关卡通关态 |
+| S32 | S18 | `saveClearState(stage_id)` | out | 写通关标记 |
+| S32 | S11 | `addMetaReward(amount)` | out | 元进度入账 |
+| S8 | S32 | `onStageClear(stage_id)` | in | 结算通知 → 解锁下一关 |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | `stage_config` 全缺 | 仅显首关（默认 st_01）；其余锁 | S25 |
+| E02 | 单关配置缺字段 | 该卡禁用 + 灰显 | S25 |
+| E03 | `wave_table` 空 | 套用 `stage_default`（8 波普通波） | S25/S4 |
+| E04 | 敌 id 非法（不在 S31） | 跳过 + 用默认 `e_goblin` 占位 + 告警 | S25/S31 |
+| E05 | 地图变体缺失 | 套用 `map_default`(S1) | S25/S1 |
+| E06 | 难度缩放极值 | 钳制 hp∈[1.0,3.0]/speed∈[1.0,2.0] + 告警 | S25 |
+| E07 | Boss 排程缺失 | 末波强制普通 Boss（默认 `b_goblin_king`） | S25/S31/S4 |
+| E08 | 奖励缺失 | 用内置默认（meta_first=100, meta_repeat=20, gold_clear=0） | S25 |
+| E09 | 解锁等级无效 | 钳制到 [1, S29.max_level]；首关强制 1 | S29/S25 |
+| E10 | 越级进关（改内存） | S24 校验 → 拒绝进关 | S24 |
+| E11 | 并发进关 | `isEntering` 锁 0.3s | S32 |
+| E12 | 分包未加载 | 进关前预载 `art_pack` + loading | S19 |
+| E13 | 切后台 onHide(S20) | 存选中态；onShow 续 | S20/S18 |
+| E14 | 配置 schema 非法 | 丢弃坏档 → `stage_default` + 记 S25 | S25 |
+
+### 5.5 状态转换表（自 §2.2 stateDiagram-v2）
+
+| state | event | transition | action |
+|---|---|---|---|
+| [*] | 选关页(S14) | → SelectStage | 渲染关卡网格 |
+| SelectStage | 点卡 | → Preview | 展开 StagePreview(S32) |
+| Preview | 点开始 | → CheckGate | 校验 unlock_level |
+| CheckGate | 等级不达标 | → RejectLevel | 灰显提示回 Preview |
+| CheckGate | 等级达标 | → CheckPre | 校验 pre_level |
+| CheckPre | 前置未通关 | → RejectPre | 显 LockTag |
+| CheckPre | 前置已通关 | → LoadConfig | 读 stage_config |
+| LoadConfig | 配置加载 | → LoadMap | 实例化 map_variant(S1) |
+| LoadMap | 地图就绪 | → LoadWaves | 编排 wave_table(S4) |
+| LoadWaves | 波次就绪 | → InjectEnemies | 解析 enemy_composition(S31) |
+| InjectEnemies | 敌群就绪 | → Ready | 关卡内容完毕 |
+| Ready | 进局 | → Running | S1 开局 |
+| Running | S8 胜/败 | → Settling | 结算 |
+| Settling | 胜 | → UnlockNext | 写 S18/S11/S29 |
+| LoadConfig | 配置缺失 | → Fallback | 套用 stage_default + 记 S25 |
+| Fallback | 就绪 | → Ready | 可战降级 |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| stg_total_count / stg_wave_count / stg_hp_scale / stg_speed_scale / stg_boss_every / stg_boss_count | balance/S32_stage_config.json |
+| stg_reward_gold_clear / stg_reward_meta_first / stg_reward_meta_repeat / stg_unlock_level | balance/S32_stage_config.json |
+| stg_endless_k_hp / stg_endless_k_speed / stg_endless_boss_every / stg_endless_score_wave / stg_endless_score_kill / stg_endless_reward_gold / stg_endless_reward_wood / stg_endless_unlock_level / stg_endless_max_wave_cap | balance/S32_stage_config.json |
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| S32 vs S14 字段重叠 | S32 持有逐关权威内容；S14 `map_id/wave_set/diff_mult/reward_mult` 重定义为"对 S32 的引用 + 运营粗调旋钮" | S14 文档侧需回填语义对齐 | DO / S14 |
+| 难度双重缩放 | `difficulty_mod.hp_scale/speed_scale`(S32 作者化) × `diff_mult`(S14 运营粗调) = 最终；钳制 hp∈[1.0,3.0]/speed∈[1.0,2.0] | 乘算互不覆盖，无冲突 | — |
+| 奖励双重定义 | `reward.meta_first/meta_repeat` 为 S32 权威值；S14 `level_reward` 视为派生视图 | S14 不另定义数值 | S14 |
+| NEEDS-DESIGN: S31 敌群原型未建 | `enemy_id` 目录为 provisional 契约；E04 兜底开启 | S31 定稿后冻结 enemy_id 目录 | S31（A 域） |
+| unlock_level 与 S29 曲线耦合 | 初值 1/1/1/2/2/2/3/3/3/4/4/4 依赖 S29 `player_level` 可达性 | S29 `xp_required`/max_level 定稿后校验 | S29（B 域） |
+| N3: armor_type 枚举 | 已弃用 `poison` 护甲；provisional 敌目录改用 `e_heavy_poison`(heavy 护甲，高HP肉盾) | S31 定稿时确认最终 enemy_id 命名 | S31（A 域） |
+| 无尽 `reward_per_wave.wood` 例外 | 无尽模式结算发 session 木（DO 裁定例外） | 若 DO 意图"结算后持久化发木"则与 S03 铁律冲突 | DO |
+
+> 所有 `[PLACEHOLDER]` 已替换为 `value_ref`（数值列）或公式派生值；本系统所有数值初值已填实（standard 关按公式派生，endless_config 指向 balance/S32_stage_config.json）。唯一硬 NEEDS-DESIGN 为 S31 enemy_id 目录（外部系统依赖）。

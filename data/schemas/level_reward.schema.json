@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "level_reward",
+  "type": "object",
+  "properties": {
+    "first_clear_meta_lv01": {
+      "type": "number"
+    },
+    "first_clear_meta_lv02": {
+      "type": "number"
+    },
+    "first_clear_meta_lv03": {
+      "type": "number"
+    },
+    "first_clear_meta_lv04": {
+      "type": "number"
+    },
+    "first_clear_meta_lv05": {
+      "type": "number"
+    },
+    "repeat_meta_lv01": {
+      "type": "number"
+    },
+    "repeat_meta_lv02": {
+      "type": "number"
+    },
+    "repeat_meta_lv03": {
+      "type": "number"
+    },
+    "repeat_meta_lv04": {
+      "type": "number"
+    },
+    "repeat_meta_lv05": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

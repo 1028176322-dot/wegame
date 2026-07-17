@@ -1,0 +1,11 @@
+{
+  "k_hp": 0.05,
+  "k_speed": 0.02,
+  "boss_every": 10.0,
+  "score_wave": 100.0,
+  "score_kill": 5.0,
+  "reward_gold": 10.0,
+  "reward_wood": 2.0,
+  "unlock_level": 1.0,
+  "max_wave_cap": 0.0
+}

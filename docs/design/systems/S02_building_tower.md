@@ -1,6 +1,8 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S2 建筑（塔）系统 (Building / Tower System)
 
+## 0. 元数据头
+
 > 归属域：A 核心战斗域 · 层级/优先级：MVP / P0 · 关联 F 码：F2 F3 F4 · 关联：GDD §5.1/§5.2/§5.7；SYSTEM_BREAKDOWN §S2
 > 状态：v0.2-detailed · 日期 2026-07-17
 > 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
@@ -167,15 +169,15 @@ sequenceDiagram
 | tower_id | string | 唯一 | — | 塔主键 |
 | name | string | 非空 | — | 显示名 |
 | type | enum | arrow/cannon/ice/wind/magic/poison/electric | arrow | 塔种（首发 4=箭/炮/冰/风，解锁 3=魔/毒/电 经 S11） |
-| build_cost | int | 10–500 | `[PLACEHOLDER]` | 建造成本（金）。**调优杆**：经济节奏 |
-| max_level | int | 1–30 | `[PLACEHOLDER]` | 软封顶等级（GDD：等级无硬上限软封顶）。**调优杆**：养成上限 |
-| base_dps | float | 1–1000 | `[PLACEHOLDER]` | 1 级 DPS。**调优杆**：清屏爽点(P2) |
-| growth | float | 1.1–3.0 | `[PLACEHOLDER]` | 每级成长系数（养塔指数，session 升级曲线）。**调优杆**：P2 指数感，建议 1.5–2.0x |
-| range | float | 50–400 | `[PLACEHOLDER]` | 射程(px)。**调优杆**：内外圈覆盖 |
-| attack_speed | float | 0.2–5 | `[PLACEHOLDER]` | 攻速(次/s)。**调优杆**：DPS 构成 |
+| build_cost | int | 10–500 | `value_ref: balance/S02_building_tower.json#t_<tower>_build_cost` | 建造成本（金）。**调优杆**：经济节奏 |
+| max_level | int | 1–30 | `value_ref: balance/S02_building_tower.json#t_<tower>_max_level` | 软封顶等级（GDD：等级无硬上限软封顶）。**调优杆**：养成上限 |
+| base_dps | float | 1–1000 | `value_ref: balance/S02_building_tower.json#t_<tower>_base_dps` | 1 级 DPS。**调优杆**：清屏爽点(P2) |
+| growth | float | 1.1–3.0 | `value_ref: balance/S02_building_tower.json#t_<tower>_growth` | 每级成长系数（养塔指数，session 升级曲线）。**调优杆**：P2 指数感，建议 1.5–2.0x |
+| range | float | 50–400 | `value_ref: balance/S02_building_tower.json#t_<tower>_range` | 射程(px)。**调优杆**：内外圈覆盖 |
+| attack_speed | float | 0.2–5 | `value_ref: balance/S02_building_tower.json#t_<tower>_attack_speed` | 攻速(次/s)。**调优杆**：DPS 构成 |
 | unlock_by | string | null 或 meta 节点 id | null | 解锁来源(S11)；null=首发（箭/炮/冰/风） |
 | status_effect | enum | none/slow/poison/chain/knockback | none | 状态类型(S5)；风塔=knockback(击退) |
-| sell_refund_rate | float | 0.3–0.9 | `[PLACEHOLDER]` | 卖塔返还比例（GDD §4：`[PLACEHOLDER]` 50%）。**调优杆**：防卡死兜底 |
+| sell_refund_rate | float | 0.3–0.9 | `value_ref: balance/S02_building_tower.json#t_<tower>_sell_refund_rate` | 卖塔返还比例。**调优杆**：防卡死兜底 |
 | skill_ref | string | 关联 `skill_config.tower_id` | — | 技能配置外键（见 S28；三技能按塔种唯一） |
 
 **表名：`upgrade_config`（升级曲线，建议合并入 tower_config）**
@@ -183,20 +185,20 @@ sequenceDiagram
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 |
 |---|---|---|---|---|
 | level | int | 1–max_level | — | 等级 |
-| wood_cost | int | 5–999 | `[PLACEHOLDER]` | 该级喂木量。**调优杆**：养塔经济曲线 |
+| wood_cost | int | 5–999 | `value_ref: balance/S02_building_tower.json#t_wood_cost` | 该级喂木量。**调优杆**：养塔经济曲线 |
 | dps_mult | float | — | growth^level | 累计 DPS 倍率（公式兜底） |
 
 **多行示例数据（CSV；示例仅展示字段格式与多塔种差异，数值列 `[PLACEHOLDER]` 表示待调优，非最终值）**
 
 ```csv
 tower_id,name,type,build_cost,max_level,base_dps,growth,range,attack_speed,unlock_by,status_effect,sell_refund_rate,skill_ref
-t_arrow,箭塔,arrow,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],null,none,[PLACEHOLDER],t_arrow
-t_cannon,炮塔,cannon,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],null,none,[PLACEHOLDER],t_cannon
-t_ice,冰塔,ice,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],null,slow,[PLACEHOLDER],t_ice
-t_wind,风塔,wind,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],null,knockback,[PLACEHOLDER],t_wind
-t_magic,魔法塔,magic,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],meta_magic,none,[PLACEHOLDER],t_magic
-t_poison,毒塔,poison,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],meta_poison,poison,[PLACEHOLDER],t_poison
-t_electric,电塔,electric,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],meta_electric,chain,[PLACEHOLDER],t_electric
+t_arrow,箭塔,arrow,value_ref:balance/S02_building_tower.json#t_arrow_build_cost,value_ref:balance/S02_building_tower.json#t_arrow_max_level,value_ref:balance/S02_building_tower.json#t_arrow_base_dps,value_ref:balance/S02_building_tower.json#t_arrow_growth,value_ref:balance/S02_building_tower.json#t_arrow_range,value_ref:balance/S02_building_tower.json#t_arrow_attack_speed,null,none,value_ref:balance/S02_building_tower.json#t_arrow_sell_refund_rate,t_arrow
+t_cannon,炮塔,cannon,value_ref:balance/S02_building_tower.json#t_cannon_build_cost,value_ref:balance/S02_building_tower.json#t_cannon_max_level,value_ref:balance/S02_building_tower.json#t_cannon_base_dps,value_ref:balance/S02_building_tower.json#t_cannon_growth,value_ref:balance/S02_building_tower.json#t_cannon_range,value_ref:balance/S02_building_tower.json#t_cannon_attack_speed,null,none,value_ref:balance/S02_building_tower.json#t_cannon_sell_refund_rate,t_cannon
+t_ice,冰塔,ice,value_ref:balance/S02_building_tower.json#t_ice_build_cost,value_ref:balance/S02_building_tower.json#t_ice_max_level,value_ref:balance/S02_building_tower.json#t_ice_base_dps,value_ref:balance/S02_building_tower.json#t_ice_growth,value_ref:balance/S02_building_tower.json#t_ice_range,value_ref:balance/S02_building_tower.json#t_ice_attack_speed,null,slow,value_ref:balance/S02_building_tower.json#t_ice_sell_refund_rate,t_ice
+t_wind,风塔,wind,value_ref:balance/S02_building_tower.json#t_wind_build_cost,value_ref:balance/S02_building_tower.json#t_wind_max_level,value_ref:balance/S02_building_tower.json#t_wind_base_dps,value_ref:balance/S02_building_tower.json#t_wind_growth,value_ref:balance/S02_building_tower.json#t_wind_range,value_ref:balance/S02_building_tower.json#t_wind_attack_speed,null,knockback,value_ref:balance/S02_building_tower.json#t_wind_sell_refund_rate,t_wind
+t_magic,魔法塔,magic,value_ref:balance/S02_building_tower.json#t_magic_build_cost,value_ref:balance/S02_building_tower.json#t_magic_max_level,value_ref:balance/S02_building_tower.json#t_magic_base_dps,value_ref:balance/S02_building_tower.json#t_magic_growth,value_ref:balance/S02_building_tower.json#t_magic_range,value_ref:balance/S02_building_tower.json#t_magic_attack_speed,meta_magic,none,value_ref:balance/S02_building_tower.json#t_magic_sell_refund_rate,t_magic
+t_poison,毒塔,poison,value_ref:balance/S02_building_tower.json#t_poison_build_cost,value_ref:balance/S02_building_tower.json#t_poison_max_level,value_ref:balance/S02_building_tower.json#t_poison_base_dps,value_ref:balance/S02_building_tower.json#t_poison_growth,value_ref:balance/S02_building_tower.json#t_poison_range,value_ref:balance/S02_building_tower.json#t_poison_attack_speed,meta_poison,poison,value_ref:balance/S02_building_tower.json#t_poison_sell_refund_rate,t_poison
+t_electric,电塔,electric,value_ref:balance/S02_building_tower.json#t_electric_build_cost,value_ref:balance/S02_building_tower.json#t_electric_max_level,value_ref:balance/S02_building_tower.json#t_electric_base_dps,value_ref:balance/S02_building_tower.json#t_electric_growth,value_ref:balance/S02_building_tower.json#t_electric_range,value_ref:balance/S02_building_tower.json#t_electric_attack_speed,meta_electric,chain,value_ref:balance/S02_building_tower.json#t_electric_sell_refund_rate,t_electric
 ```
 > 注：`t_wind` 风塔为**新风种（DO 已确认**命名/定位：风塔 t_wind，击退控制）**；`wood_rate` 字段已删除（木房移除）；技能三字段迁至 `skill_config`（S28）。木来源现为"怪掉 + 应急兑换"(S03/S04)。
 
@@ -220,3 +222,93 @@ t_electric,电塔,electric,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDE
 | 技能图标/特效/光环 | 见 S28 §4 | — | — | 技能表现统一在 S28 定义 |
 
 > 塔模型格式（图集/骨骼）与压缩规范见 S19/S34；攻击动效细节与打击感合并见 S23。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| tower_id | string | `tower_config.tower_id`（本系统 §3） |
+| tower_type | enum | `tower_config.type`（arrow/cannon/ice/wind/magic/poison/electric） |
+| session_player_level | int | `player_level_config[level]`（S29，建塔时单行套用，不累加） |
+| gold / wood | int | `economy_config`（S03，建造扣金 / 养塔扣木） |
+| slot_state | bool | `map_config.tower_slots` 占用状态（S1） |
+| skill_config_ref | string | `skill_config.tower_id` FK（S28 §3） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| tower_instance | object | 已建塔实例（属性 = base × S29 等级加成 × growth^养塔级） |
+| slot_occupied / slot_released | event | 占/释塔位回调（→S1） |
+| effective_attrs | object | 推送 S5 的开火属性（dmg/range/atk_speed/status_effect） |
+| skill_state | object | 被动锁定态 + 主动技 CD（→S28） |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S2 | S3 | `queryGold()` / `deductGold(cost)` | in | 校验并扣建造金 |
+| S2 | S3 | `queryWood()` / `deductWood(cost)` | in | 校验并扣养塔木 |
+| S2 | S1 | `occupySlot(slot_id)` / `releaseSlot(slot_id)` | in | 建/卖塔占/释塔位 |
+| S2 | S5 | `registerTower(towerAttrs)` / `updateTowerAttrs(towerId, attrs)` | out | 注册 / 更新开火属性 |
+| S2 | S28 | `getSkillConfig(towerId)` / `castActiveSkill(towerId)` | in/out | 读技能配置 / 释放主动技 |
+| S2 | S29 | `getLevelBonus(sessionPlayerLevel)` | in | 建塔时单行等级加成（不累加） |
+| S2 | S11 | `isUnlocked(towerId)` | in | 解锁门槛校验 |
+| S2 | S8 | `notifyTowerBuilt()` / `notifyTowerSold()` | out | 建/卖塔事件（→S8 统计/结算） |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 解锁态需远程校验(S11)断网 | 用本地已解锁列表，建造/养塔全本地 | S11/S18 |
+| E02 | 切后台 onHide(S20) | 建造/养塔协程挂起；onShow 恢复零损失 | S20 |
+| E03 | `tower_config` 缺/损坏(S18) | 该塔种不进选择条；已建塔默认属性/移除补偿，记 S25 | S18/S25 |
+| E04 | 200ms 内连点建造 | 防抖，仅首次生效 | S2 |
+| E05 | 同时点养塔与卖塔 | 互斥锁，先到先得，后到提示"塔操作中" | S2 |
+| E06 | `build_cost`≤0 | 钳制最小正价 | S24 |
+| E07 | 木为负/不足 | 养按钮禁用，预览灰显 | S03 |
+| E08 | 等级≥软封顶 | 养按钮隐藏，显"已满级" | S2 |
+| E09 | `base_dps` 异常(≤0/溢出) | 钳制最小 1，对 S24 报可疑 | S24/S25 |
+| E10 | `upgrade_config` 缺 | 用 `base×growth^level` 公式兜底 | S2 |
+| E11 | `session_player_level` 未读/脏 | 降级 1 级（无加成，安全） | S29/S18 |
+| E12 | 卖塔时塔正开火(S5) | 终止射击协程，进行中弹道自然消失 | S5 |
+
+### 5.5 状态转换表
+
+| state | event | transition | action |
+|---|---|---|---|
+| EmptySlot | 点击空位 | → Selecting | 弹选择条 |
+| Selecting | 选塔种+金足 | → Building | 校验金(S3) |
+| Selecting | 取消/金不足 | → EmptySlot | 关闭弹层/置灰 |
+| Building | 建塔完成(占塔位) | → Occupied | 实例化塔，套 S29 加成 |
+| Occupied | 点养塔+木足 | → Upgrading | 等级+1 |
+| Upgrading | 等级+1 | → Occupied | 推送新属性(S5) |
+| Occupied | 达软封顶 | → Maxed | 停止养 |
+| Maxed | 长按确认卖 | → Selling | 返还金 |
+| Occupied | 长按确认卖 | → Selling | 返还金 |
+| Selling | 返还金+释放塔位 | → EmptySlot | 塔回 Lv1，被动重锁(S28) |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| t_arrow_build_cost / t_arrow_max_level / t_arrow_base_dps / t_arrow_growth / t_arrow_range / t_arrow_attack_speed / t_arrow_sell_refund_rate | balance/S02_building_tower.json |
+| t_cannon_build_cost / t_cannon_max_level / t_cannon_base_dps / t_cannon_growth / t_cannon_range / t_cannon_attack_speed / t_cannon_sell_refund_rate | balance/S02_building_tower.json |
+| t_ice_build_cost / t_ice_max_level / t_ice_base_dps / t_ice_growth / t_ice_range / t_ice_attack_speed / t_ice_sell_refund_rate | balance/S02_building_tower.json |
+| t_wind_build_cost / t_wind_max_level / t_wind_base_dps / t_wind_growth / t_wind_range / t_wind_attack_speed / t_wind_sell_refund_rate | balance/S02_building_tower.json |
+| t_magic_build_cost / t_magic_max_level / t_magic_base_dps / t_magic_growth / t_magic_range / t_magic_attack_speed / t_magic_sell_refund_rate | balance/S02_building_tower.json |
+| t_poison_build_cost / t_poison_max_level / t_poison_base_dps / t_poison_growth / t_poison_range / t_poison_attack_speed / t_poison_sell_refund_rate | balance/S02_building_tower.json |
+| t_electric_build_cost / t_electric_max_level / t_electric_base_dps / t_electric_growth / t_electric_range / t_electric_attack_speed / t_electric_sell_refund_rate | balance/S02_building_tower.json |
+| t_wood_cost | balance/S02_building_tower.json |
+
+---
+
+## 6. 冲突与待裁定
+
+本系统无跨系统冲突或待裁定项。命名已对齐：电塔 id 为 `t_electric`（N1 已落地，无 `t_thunder` 残留）；`type` 枚举（含 `electric`）与 S30 权威一致；`status_effect` 枚举（none/slow/poison/chain/knockback）与 S5/S33 对齐。数值初值已全部锁定于 `balance/S02_building_tower.json`（50 个 param_id，含 `t_wood_cost`），无 `NEEDS-DESIGN`。
+
+> 注（非冲突，仅记录）：doc §3 字段表 `growth` 建议上界「1.5–2.0x」为参考上界，balance 初值取 1.15–1.20（偏保守，贴近《绿色循环圈》养塔直觉），待试玩上调；终值以 `balance/S02_building_tower.json#t_<tower>_growth` 为准。

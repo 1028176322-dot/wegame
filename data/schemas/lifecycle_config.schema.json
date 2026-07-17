@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "lifecycle_config",
+  "type": "object",
+  "properties": {
+    "auto_pause_on_hide": {
+      "type": "number"
+    },
+    "bg_no_tick": {
+      "type": "number"
+    },
+    "max_resume_lock_ms": {
+      "type": "number"
+    },
+    "pause_bgm_on_hide": {
+      "type": "number"
+    },
+    "resume_confirm": {
+      "type": "number"
+    },
+    "save_on_hide": {
+      "type": "number"
+    },
+    "save_retry_queue": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

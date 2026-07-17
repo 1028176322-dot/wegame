@@ -1,9 +1,21 @@
 # 系统策划案：S10 大厅系统 (Hub / Lobby System)
 
 > 归属域：B 元进度社交域 · 层级/优先级：MVP / P1 · 关联 F 码：（导航中枢）· 关联：SYSTEM_BREAKDOWN §S10
-> 状态：v0.2-detailed · 日期 2026-07-17
+> 状态：v0.3-ai-readable · 日期 2026-07-17
 > 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
 > 数值约定：凡涉及成本/奖励/时长的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
+
+---
+
+## 0. 元数据头
+
+- 归属域：B 元进度社交域
+- 层级 / 优先级：MVP / P1
+- 关联 F 码：（导航中枢）
+- 关联文档：SYSTEM_BREAKDOWN §S10
+- 依赖系统：S1（开局）、S12（签到）、S13（排行）、S16（图鉴）、S17（赛季）、S18（存档）、S20（生命周期）、S22（设置）、S42（登录，暂不做）
+- 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- NEEDS-DESIGN 索引：无（本系统 [PLACEHOLDER] 仅为运行期实时显示槽，已说明，无遗留调优量）
 
 ---
 
@@ -26,9 +38,9 @@
 
 ```
   0       150      300      450      600      750
-  ┌──────────────────────────────────────────────┐ y=0
+  ┌──────────────────────────────────────┐ y=0
   │ [状态条 StatusBar 750×70  y=20]                │
-  │  元资源:[PLACEHOLDER]  最佳波数:[N]  赛季▷[dd天] │
+  │  元资源:value_ref: balance/S10_hub.json#hub_status_meta_res_display  最佳波数:[N]  赛季▷[dd天] │
   │                                                │
   │            ┌─────────────────────┐             │ y=420
   │            │   开始游戏 300×120    │  MainBtn    │
@@ -42,7 +54,7 @@
   │  │ ● │   │ ● │   │ ● │   │    │  96×96 ×4      │
   │  └────┘   └────┘   └────┘   └────┘ 红点●在右上  │ y=1146
   │  S16       S13      S12      S22                │
-  └──────────────────────────────────────────────┘ y=1334
+  └──────────────────────────────────────┘ y=1334
 ```
 
 > 入口图标间距：4 图标 ×96 + 3 间距 ≈95，左侧距 40，右侧余 41，居中对称。红点位于图标右上角 (icon_x+84, icon_y-12)，24×24。
@@ -220,3 +232,84 @@ rd_season,S17,season.countdown<=3d,signin,4
 | `unlock_tower_thumb` 解锁塔缩略 | 中部展示 | 静态 | 80×80 ×N | PNG 图集 | 按塔数切片，复用 S16 图标 |
 
 > 大厅资源主包或首分包（S19）；按钮动效/音效见 S23。多语言/字号适配由 S22 设置驱动。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构（字段 / 类型 / 来源 config 字段）
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| hub_config | json | §3.1 hub_config（default_level / entry_list / show_reddot / bg_theme / max_click_interval / show_season_cd / status_fields / entry_label_map） |
+| reddot_config[] | json | §3.2 reddot_config（rule_id / source_system / condition / target_entry / priority） |
+| save.meta_res | int | S18 存档（元资源，运行期实时值） |
+| save.best_wave | int | S18 存档（最佳波数） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| reddot_state[] | bool | 各入口红点态（聚合 S11/S12/S13/S17 查询结果） |
+| route_target | enum | codex/rank/signin/setting/level(S1)/setting(S22) |
+| scene | enum | hub / in_level(S1) / sub_system |
+
+### 5.3 跨系统接口调用表（caller / callee / function / 方向 / 用途）
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S10 | S18 | queryMetaRes() | in | 读元资源渲染 StatusBar |
+| S10 | S18 | queryBestWave() | in | 读最佳波数 |
+| S10 | S12 | queryTodayClaimable() | in | 算签到红点 |
+| S10 | S13 | queryRankOvertaken() | in | 算排行红点 |
+| S10 | S11 | queryClaimableReward() | in | 算元进度可领红点 |
+| S10 | S17 | querySeasonCountdown() | in | 算赛季倒计时/红点 |
+| S10 | S1 | enterLevel(default_level) | out | 开始游戏进默认关 |
+| S10 | S22 | routeSetting() | out | 进设置 |
+
+### 5.4 错误码表（E# / 场景 / 兜底 / 涉及系统）
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 S20 | 不销毁，onShow 刷红点 | S20 |
+| E02 | 数据损坏 S18 | 默认空档进大厅，触发 S18 修复 | S18 |
+| E03 | 目标系统未实装 | 入口灰显/提示，Blocked | S12/S13/S16 |
+| E04 | 路由失败 | 回大厅 + 告警 S25 | S25 |
+| E05 | 快速连点 | isRouting 锁 0.5s | — |
+| E06 | 微信登录失败 S42 | 本地兜底零阻塞 | S42 |
+| E07 | 网络中断 | 红点本地缓存/默认 | S21 |
+| E08 | 排行榜拉取超时 | 仅显红点不拉榜 | S13 |
+| E09 | 数值极值 | 显示截断 9999+ | — |
+| E10 | 配置缺失 | 默认 entry_list + default_level | — |
+
+### 5.5 状态转换表（state / event / transition / action）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Boot | onShow/启动 | → LoadSave | 读档 S18 |
+| LoadSave | 读档完成 | → ComputeReddot | 取元资源/最佳波数 |
+| ComputeReddot | 渲染完成 | → Idle | 渲染状态+红点 |
+| Idle | 点入口/开始游戏 | → EnterSub | — |
+| EnterSub | isRouting=false | → Route | — |
+| Route | 进目标系统 | → [*] | 进 S1/S12/S13/S16/S22 |
+| Idle | onHide S20 | → Background | 保留状态 |
+| Background | onShow S20 | → Idle | 刷红点 |
+| Route | 目标未实装 | → Blocked | 灰显/提示 |
+| Blocked | 回大厅 | → Idle | — |
+
+### 5.6 数值消费清单（本系统消费的所有 balance param_id + 来源文件）
+
+| param_id | 来源 balance 文件 | 用途 |
+|---|---|---|
+| hub_status_meta_res_display | balance/S10_hub.json | StatusBar「元资源」运行期实时显示槽（§1.2）；非调优量，读 S18 当前 meta_res |
+
+> 本系统 §3 全部 config 字段（default_level / entry_list / max_click_interval=0.5 / bg_theme / reddot 规则等）均为固定设计常量，无 `[PLACEHOLDER]` 调优量，故 §5.6 仅列上表 1 项显示槽（balance 已说明为非调优量）。
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-S10-1 | 红点由 `reddot_config.condition` 表达式驱动，聚合查询 S11/S12/S13/S17 本地态；目标系统未实装则 Blocked 灰显 | 是否统一红点协议（condition 表达式由通用 ReddotService 消费，而非各系统自查）；建议保留本地优先，远端红点(S21)仅增强 | S10 |
+| C-S10-2 | 大厅纯本地，不依赖 S42 登录（E06 零阻塞兜底） | 待 S42 云存档实装后，大厅入口状态是否需跨设备同步（建议本地优先，云存仅备份） | S10 |

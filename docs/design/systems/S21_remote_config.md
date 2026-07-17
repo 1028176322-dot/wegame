@@ -1,19 +1,26 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S21 远程配置系统 (Remote Config System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：增强 / P2 · 关联 F 码：F33 · 关联：SYSTEM_BREAKDOWN §S21 · GDD §6（通胀检测）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：模块表 4 行 + 4 异常 + 单表 6 字段）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F33
+- 关联系统：S3（汇率/掉落热更）、S26（flag_monetize）、S17（flag_season）、S25（降级告警）、各订阅系统（热更广播）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：远端 JSON 拉取（服务端）；本地缓存；S25 上报
+- NEEDS-DESIGN 索引：S21-ND1（wave_diff_mult，NEEDS-DESIGN owner:S21 due:P4-tuning）｜S21-ND2（drop_mult，NEEDS-DESIGN owner:S21 due:P4-tuning）｜S21-ND3（gold_per_wave_base，NEEDS-DESIGN owner:S21 due:P4-tuning）｜S21-ND4（fetch_interval，NEEDS-DESIGN owner:S21 due:P4-tuning）
+- 已设计 value_ref：exchange_rate→balance/S03_economy.json#econ_exchange_rate；inflation_threshold→balance/S03_economy.json#econ_inflation_threshold
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
 | §1 UI 布局 | 仅文字 | 加 z 层级、**"配置已更新"轻提示像素线框**、交互流程图 |
 | §2 逻辑功能 | 模块表 4 行 + 4 异常 | 加**拉取/降级状态机**、**拉取时序图**、**异常边界用例表（12 类，含拉取失败兜底/数值越界/限频）** |
-| §3 配置表 | 单表 6 字段 | `remote_config` 扩字段（含校验范围/来源）+ **多行示例（含 F19 开关 default off）**，值标 `[PLACEHOLDER]` |
+| §3 配置表 | 单表 6+字段 | `remote_config` 扩字段（含校验范围/来源）+ **多行示例（含 F19 开关 default off）**，值改 `value_ref` / `NEEDS-DESIGN` 指针 |
 | §4 美术资源 | 2 行占位 | 加重载 toast 规格（帧数/分辨率/格式/切片） |
 
 ---
@@ -157,46 +164,46 @@ sequenceDiagram
 ### 3.1 表：`remote_config`（远端键值 JSON，含本地默认值与校验范围）
 | key | 类型 | 取值范围 | 默认值 | 说明 / 调优杆 |
 |-----|------|----------|--------|---------------|
-| exchange_rate | float | 0.1–10 | `[PLACEHOLDER]` | 金→木汇率(S3) **调优杆** |
-| wave_diff_mult | float | 0.5–3 | `[PLACEHOLDER]` | 波表难度(S4) **调优杆** |
-| drop_mult | float | 0.5–3 | `[PLACEHOLDER]` | 掉落倍率 **调优杆** |
-| gold_per_wave_base | int | >0 | `[PLACEHOLDER]` | 单波基础金(S3) **调优杆** |
+| exchange_rate | float | 0.1–10 | value_ref: balance/S03_economy.json#econ_exchange_rate | 金→木汇率(S3) **调优杆** |
+| wave_diff_mult | float | 0.5–3 | S21-ND1 · NEEDS-DESIGN (owner: S21, due: P4-tuning) | 波表难度(S4) **调优杆** |
+| drop_mult | float | 0.5–3 | S21-ND2 · NEEDS-DESIGN (owner: S21, due: P4-tuning) | 掉落倍率 **调优杆** |
+| gold_per_wave_base | int | >0 | S21-ND3 · NEEDS-DESIGN (owner: S21, due: P4-tuning) | 单波基础金(S3) **调优杆** |
 | flag_monetize | bool | false | false | F19 变现开关（**default off**） |
 | flag_season | bool | false | false | 赛季开关(S17) |
-| fetch_interval | int | 60–3600 | `[PLACEHOLDER]` | 拉取间隔(s) **调优杆** |
+| fetch_interval | int | 60–3600 | S21-ND4 · NEEDS-DESIGN (owner: S21, due: P4-tuning) | 拉取间隔(s) **调优杆** |
 | show_reload_toast | bool | false | false | 热更轻提示 |
-| inflation_threshold | float | >0 | `[PLACEHOLDER]` | 复用 S3/GDD §6 通胀线 **调优杆** |
+| inflation_threshold | float | >0 | value_ref: balance/S03_economy.json#econ_inflation_threshold | 复用 S3/GDD §6 通胀线 **调优杆** |
 
-### 3.2 示例数据（多行，值均 `[PLACEHOLDER]`，结构示意）
+### 3.2 示例数据（多行，值均 `value_ref` / `NEEDS-DESIGN`，结构示意）
 **示例 A：默认/首发（变现关、赛季关、保守值）**
 ```json
 {
-  "exchange_rate": "[PLACEHOLDER]",
-  "wave_diff_mult": "[PLACEHOLDER]",
-  "drop_mult": "[PLACEHOLDER]",
-  "gold_per_wave_base": "[PLACEHOLDER]",
+  "exchange_rate": "value_ref:balance/S03_economy.json#econ_exchange_rate",
+  "wave_diff_mult": "S21-ND1",
+  "drop_mult": "S21-ND2",
+  "gold_per_wave_base": "S21-ND3",
   "flag_monetize": false,
   "flag_season": false,
-  "fetch_interval": "[PLACEHOLDER]",
+  "fetch_interval": "S21-ND4",
   "show_reload_toast": false,
-  "inflation_threshold": "[PLACEHOLDER]"
+  "inflation_threshold": "value_ref:balance/S03_economy.json#econ_inflation_threshold"
 }
 ```
 **示例 B：平衡 pass（调高兑换率、开赛季预告、开提示）**
 ```json
 {
-  "exchange_rate": "[PLACEHOLDER]",
-  "wave_diff_mult": "[PLACEHOLDER]",
-  "drop_mult": "[PLACEHOLDER]",
-  "gold_per_wave_base": "[PLACEHOLDER]",
+  "exchange_rate": "value_ref:balance/S03_economy.json#econ_exchange_rate",
+  "wave_diff_mult": "S21-ND1",
+  "drop_mult": "S21-ND2",
+  "gold_per_wave_base": "S21-ND3",
   "flag_monetize": false,
   "flag_season": true,
-  "fetch_interval": "[PLACEHOLDER]",
+  "fetch_interval": "S21-ND4",
   "show_reload_toast": true,
-  "inflation_threshold": "[PLACEHOLDER]"
+  "inflation_threshold": "value_ref:balance/S03_economy.json#econ_inflation_threshold"
 }
 ```
-> 所有 `[PLACEHOLDER]` 为试玩/数据调优确定，禁止在代码中硬编码；取值范围为设计约束，实际值经 S25 观测 + GDD §6 通胀检测后裁定。
+> 未设计项（标 `S21-ND1`~`S21-ND4`）为试玩/数据调优确定，禁止在代码中硬编码；取值范围为设计约束，实际值经 S25 观测 + GDD §6 通胀检测后裁定。已设计项 `exchange_rate` / `inflation_threshold` 以 `value_ref` 指向 `balance/S03_economy.json` 既有 param_id（`econ_exchange_rate` / `econ_inflation_threshold`）。
 
 ---
 
@@ -209,3 +216,89 @@ sequenceDiagram
 | （本身逻辑） | — | — | — | — | — | 纯数据，无美术 |
 
 > 开关状态（`flag_monetize`/`flag_season`）影响 S26/S17 可见性；本系统纯后台，仅可选轻提示有美术，复用通用 toast 组件。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| exchange_rate | float | value_ref: balance/S03_economy.json#econ_exchange_rate |
+| wave_diff_mult | float | S21-ND1（NEEDS-DESIGN） |
+| drop_mult | float | S21-ND2（NEEDS-DESIGN） |
+| gold_per_wave_base | int | S21-ND3（NEEDS-DESIGN） |
+| fetch_interval | int | S21-ND4（NEEDS-DESIGN） |
+| inflation_threshold | float | value_ref: balance/S03_economy.json#econ_inflation_threshold |
+| flag_monetize / flag_season | bool | `remote_config` 开关（default off） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| applied_snapshot | object | 校验后热更快照（版本号标记） |
+| degraded | bool | 拉取失败时 true，用本地默认 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| App | S21 | `init()` / 定时 `fetch` | in | 启动/定时拉取 |
+| S21 | S3 | `apply(汇率/掉落)` | out | 热更经济参数 |
+| S21 | S26 | `apply(flag_monetize)` | out | 变现开关 |
+| S21 | S17 | `apply(flag_season)` | out | 赛季开关 |
+| 各系统 | S21 | 订阅热更 | in | 广播快照 |
+| S21 | Cache | read/write 本地 | out | 本地缓存 |
+| S21 | Srv | `fetch` 远端 JSON | out | 远端配置 |
+| S21 | S25 | `report(降级)` | out | 告警 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 拉取超时/失败 | 本地默认+定时重拉 | S25 |
+| E2 | 配置格式错 | 忽略整体，本地默认 | — |
+| E3 | 单键缺失 | 该键本地默认 | — |
+| E4 | 热更致数值异常 | 范围校验→默认 | S3 |
+| E5 | 类型不符 | 解析失败→默认 | — |
+| E6 | 频繁拉取 | 限频跳过 | — |
+| E7 | 微信 API 失败 | catch→本地默认+S25 | — |
+| E8 | 缓存损坏 | 视为无缓存→代码默认 | — |
+| E9 | 热更与对局冲突 | 对局内锁值，下局生效 | S3/S26 |
+| E10 | 远端返回超大 | 截断/拒收+告警 | — |
+| E11 | 开关值非法 | 默认 false（关） | — |
+| E12 | 多系统订阅竞态 | 广播串行+版本号 | — |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| LocalInit | 启动 | → Idle | 用本地默认/缓存 |
+| Idle | 定时器/启动 | → Fetching | 异步拉取 |
+| Fetching | HTTP 200 + body | → Parsing | — |
+| Fetching | 超时/网络错 | → Degraded | 用本地默认 |
+| Parsing | JSON.parse OK | → Validating | — |
+| Parsing | 格式错 | → Degraded | — |
+| Validating | 全部键合法 | → Applied | — |
+| Validating | 部分键越界 | → Partial | 越界键用默认 |
+| Partial | 覆盖完成 | → Applied | — |
+| Applied | 广播热更 | → Notify | — |
+| Notify | show_reload_toast | → Idle（经 toast） | 闪 z=45 |
+| Notify | 静默 | → Idle | — |
+| Degraded | 用本地默认 | → Idle | — |
+| Idle | 定时重拉 | → Fetching | — |
+
+### 5.6 数值消费清单
+本系统消费的 balance 层参数（已设计，指向既有 param_id）：
+- `econ_exchange_rate` — 来源 `balance/S03_economy.json`（exchange_rate）
+- `econ_inflation_threshold` — 来源 `balance/S03_economy.json`（inflation_threshold）
+
+本系统自有的未设计调优项（NEEDS-DESIGN，无 balance param，待 S25 观测 + GDD §6 裁定）：
+- `S21-ND1` wave_diff_mult — NEEDS-DESIGN (owner: S21, due: P4-tuning)
+- `S21-ND2` drop_mult — NEEDS-DESIGN (owner: S21, due: P4-tuning)
+- `S21-ND3` gold_per_wave_base — NEEDS-DESIGN (owner: S21, due: P4-tuning)
+- `S21-ND4` fetch_interval — NEEDS-DESIGN (owner: S21, due: P4-tuning)
+
+## 6. 冲突与待裁定
+
+### 6.1 已裁定设计规则（非待裁定）
+- 热更与对局冲突（E9）：对局内锁值、下局生效，防止中途跳变。current_implementation 与 pending_decision 一致，无需 DO 裁定。
+
+### 6.2 冲突汇总
+本系统无 DO 待裁定冲突项；开放调优项见 §0 索引 / §5.6。

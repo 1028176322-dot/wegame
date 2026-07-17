@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "skill_config",
+  "type": "object",
+  "properties": {
+    "active_cost": {
+      "type": "number"
+    },
+    "arrow_active_burst_mult": {
+      "type": "number"
+    },
+    "arrow_active_cd": {
+      "type": "number"
+    },
+    "arrow_active_shots": {
+      "type": "number"
+    },
+    "arrow_p1_armor_reduct": {
+      "type": "number"
+    },
+    "arrow_p1_dur": {
+      "type": "number"
+    },
+    "arrow_p1_proc": {
+      "type": "number"
+    },
+    "arrow_p2_atkspd": {
+      "type": "number"
+    },
+    "arrow_p2_dur": {
+      "type": "number"
+    },
+    "arrow_p2_interval": {
+      "type": "number"
+    },
+    "arrow_passive1_lv": {
+      "type": "number"
+    },
+    "arrow_passive2_lv": {
+      "type": "number"
+    },
+    "cannon_active_aoe_mult": {
+      "type": "number"
+    },
+    "cannon_active_cd": {
+      "type": "number"
+    },
+    "cannon_active_slow_dur": {
+      "type": "number"
+    },
+    "cannon_p1_dot": {
+      "type": "number"
+    },
+    "cannon_p1_dot_dur": {
+      "type": "number"
+    },
+    "cannon_p2_heavy": {
+      "type": "number"
+    },
+    "cannon_passive1_lv": {
+      "type": "number"
+    },
+    "cannon_passive2_lv": {
+      "type": "number"
+    },
+    "cd_min_clamp": {
+      "type": "number"
+    },
+    "electric_active_cd": {
+      "type": "number"
+    },
+    "electric_active_strikes": {
+      "type": "number"
+    },
+    "electric_p1_jump_bonus": {
+      "type": "number"
+    },
+    "electric_p1_recast_dmg": {
+      "type": "number"
+    },
+    "electric_p2_vuln": {
+      "type": "number"
+    },
+    "electric_passive1_lv": {
+      "type": "number"
+    },
+    "electric_passive2_lv": {
+      "type": "number"
+    },
+    "ice_active_cd": {
+      "type": "number"
+    },
+    "ice_active_freeze_dur": {
+      "type": "number"
+    },
+    "ice_p1_spread_chance": {
+      "type": "number"
+    },
+    "ice_p1_spread_count": {
+      "type": "number"
+    },
+    "ice_p2_vuln": {
+      "type": "number"
+    },
+    "ice_passive1_lv": {
+      "type": "number"
+    },
+    "ice_passive2_lv": {
+      "type": "number"
+    },
+    "magic_active_cd": {
+      "type": "number"
+    },
+    "magic_active_truedmg_mult": {
+      "type": "number"
+    },
+    "magic_p1_armor_pen": {
+      "type": "number"
+    },
+    "magic_p2_cd_reduce": {
+      "type": "number"
+    },
+    "magic_passive1_lv": {
+      "type": "number"
+    },
+    "magic_passive2_lv": {
+      "type": "number"
+    },
+    "poison_active_cd": {
+      "type": "number"
+    },
+    "poison_active_dot": {
+      "type": "number"
+    },
+    "poison_active_dot_dur": {
+      "type": "number"
+    },
+    "poison_p1_max_stack": {
+      "type": "number"
+    },
+    "poison_p2_spread_radius": {
+      "type": "number"
+    },
+    "poison_passive1_lv": {
+      "type": "number"
+    },
+    "poison_passive2_lv": {
+      "type": "number"
+    },
+    "wind_active_cd": {
+      "type": "number"
+    },
+    "wind_active_kb_dist": {
+      "type": "number"
+    },
+    "wind_active_stun_dur": {
+      "type": "number"
+    },
+    "wind_p1_kb_dist": {
+      "type": "number"
+    },
+    "wind_p1_proc": {
+      "type": "number"
+    },
+    "wind_p2_max_stack": {
+      "type": "number"
+    },
+    "wind_p2_slow": {
+      "type": "number"
+    },
+    "wind_passive1_lv": {
+      "type": "number"
+    },
+    "wind_passive2_lv": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,10 +1,22 @@
 # 系统策划案：S14 关卡系统 (Level System)
 
 > 归属域：B 元进度社交域 · 层级/优先级：增强 / P2 · 关联 F 码：F17 · 关联：SYSTEM_BREAKDOWN §S14
-> 状态：v0.2-detailed · 日期 2026-07-17
+> 状态：v0.3-ai-readable · 日期 2026-07-17
 > 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
 > 数值约定：凡涉及难度系数/奖励/解锁条件的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
 > 边界：不做 UGC 关卡（见 FEATURE_SCOPE §6）；不做关卡内随机种子（首版固定，见 SYSTEM_BREAKDOWN §S14）。
+
+---
+
+## 0. 元数据头
+
+- 归属域：B 元进度社交域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F17
+- 关联文档：SYSTEM_BREAKDOWN §S14
+- 依赖系统：S1（地图）、S4（波次）、S8（结算）、S11（解锁下一关）、S18（存档）、S20（生命周期）、S29（玩家等级，无尽门控）、S32（关卡/无尽配置）、S24（防作弊，越级校验）、S19（分包资源）
+- 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- NEEDS-DESIGN 索引：无（本系统所有 `[PLACEHOLDER]` 已在 balance/S14_level.json 给初值）
 
 ---
 
@@ -26,7 +38,7 @@
 
 ```
   0       150      300      450      600      750
-  ┌──────────────────────────────────────────────┐ y=0
+  ┌──────────────────────────────────────┐ y=0
   │ (20,40)⟲返回        选择关卡                  │ y=40  BackBtn 64×64
   │  ┌──────────┐  ┌──────────┐                  │ y=200 卡 320×200
   │  │ lv_01     │  │ lv_02     │  2列            │
@@ -42,24 +54,23 @@
   │        ┌────────────────────┐                 │ y=1150 StartBtn 300×96
   │        │   开始 (选中 lv_03)  │                 │
   │        └────────────────────┘                 │
-  └──────────────────────────────────────────────┘ y=1334
+  └──────────────────────────────────────┘ y=1334
 ```
 
 **视图 B：无尽模式入口卡（独立卡片 EndlessEntry，750×1334，锚定选关页顶部，与标准网格并列）**
 
 ```
   0       150      300      450      600      750
-  ┌──────────────────────────────────────────────┐ y=0
+  ┌──────────────────────────────────────┐ y=0
   │ (20,40)⟲返回        选择关卡                  │ y=40  BackBtn 64×64
   │  ┏━━━ 无尽模式 ENDLESS_MODE ━━━━━━━━━━━━━━━┓  │ y=110 EndlessEntry 670×160
   │  ┃ 无尽生存：无胜利，尽力坚持更久！ ENDLESS_DESC ┃ │
   │  ┃ 每 N 波出 Boss · 波数+击杀计分 · 上榜 S13   ┃ │
   │  ┃ 解锁：Lv.{lv}（已达 ✓ / 🔒未达）ENDLESS_UNLOCK ┃ │
   │  ┃        [ 进入 ENDLESS_ENTER ] 300×72     ┃ │ y=230
-  │  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │ y=270
+  │  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │ y=270
   │  （下方标准选关网格 LevelGrid 原样，y 起点下移到 300） │
-  └──────────────────────────────────────────────┘ y=1334
-```
+  └──────────────────────────────────────┘ y=1334
 ```
 
 ### 1.3 组件表（精确坐标 / 尺寸 / 层级 / 响应）
@@ -78,7 +89,7 @@
 | EndlessEntry | (40,110) | 670×160 | 40 | 无交互（展示） | 无尽入口卡；锚定 Top-Center，安全区 y≥88 下；九宫(3×3,cap 16) 拉伸 |
 | EndlessTitle | 卡内 (60,130) | 文本 28px | 40 | 静态 | i18n `ENDLESS_MODE` |
 | EndlessDesc | 卡内 (60,168) | 文本 20px | 40 | 静态 | i18n `ENDLESS_DESC`（模式简介） |
-| EndlessUnlock | 卡内 (60,212) | 文本 20px | 40 | 静态 | i18n `ENDLESS_UNLOCK`，显示 `S32.endless_config.unlock_level`（S29 等级）；未达则 🔒 灰显 |
+| EndlessUnlock | 卡内 (60,212) | 文本 20px | 40 | 静态 | i18n `ENDLESS_UNLOCK`，显示 `S29` 等级门槛（见 §6 C-S14-1）；未达则 🔒 灰显 |
 | EndlessEnterBtn | (225,230) | 300×72 | 40 | 点 → 校验 S29 等级 → 进无尽(S1+S4生成) | 未达 `unlock_level` 则禁用+提示；锚定卡内居中 |
 
 ### 1.4 交互流程图（大厅 → 选关 → 进关）
@@ -87,7 +98,7 @@
 flowchart TD
     A[大厅 S10 → 选关入口] --> B[读档 S18: 解锁进度]
     A --> E0[无尽入口卡 EndlessEntry]
-    E0 --> E1{player_level ≥ S32.endless_config.unlock_level?}
+    E0 --> E1{player_level ≥ S29 等级门槛?}
     E1 -- 否 --> E2[显 🔒 + ENDLESS_UNLOCK 提示]
     E1 -- 是 --> E3[进无尽: S1地图 + S4程序化生成]
     E2 --> E0
@@ -115,8 +126,8 @@ flowchart TD
 | 关卡列表 | 读档(S18) | 取解锁进度 → 渲染卡三态 | 网格态 |
 | 解锁检查 | 点卡 | 校验 `pre_level` 通关 → 允许/拒 | 可否进 |
 | 进关 | 点开始(已解锁) | 载 `map_id`+`wave_config` → S1 | 开局 |
-| 无尽入口 | 大厅→选关页渲染 | 读 `S32.endless_config.unlock_level` → 显示 EndlessEntry 卡（锁/可态） | 入口态 |
-| 无尽进关 | 点 EndlessEnterBtn | 校验 S29 `player_level` ≥ `unlock_level` → 载 map(S1) + 触发 S4 无尽生成 | 进无尽局 |
+| 无尽入口 | 大厅→选关页渲染 | 读 S29 玩家等级 ≥ 无尽门槛 → 显示 EndlessEntry 卡（锁/可态） | 入口态 |
+| 无尽进关 | 点 EndlessEnterBtn | 校验 S29 等级 ≥ 门槛 → 载 map(S1) + 触发 S4 无尽生成 | 进无尽局 |
 | 通关解锁 | S8 胜 | 标记本关通关 → 解锁下一关(S11) | 进度+ |
 | 难度参数 | 进关时 | 按 `level.difficulty` × `diff_mult` 缩放波表 | 难度 |
 
@@ -197,19 +208,19 @@ sequenceDiagram
 | wave_set | string | 关联 S4 | "ws_lv01" | 波表集 |
 | diff_mult | float | 0.5–3 | 1.0 | 难度缩放（调优杆） |
 | reward_mult | float | 0.5–3 | 1.0 | 奖励缩放（调优杆） |
-| ring_count | int | 1–N | `[PLACEHOLDER]` | 圈数（地图变体） |
-| tower_slots | int | 1–N | `[PLACEHOLDER]` | 塔位数 |
+| ring_count | int | 1–N | value_ref: balance/S14_level.json#lvl_ring_count_lv0X（按 level_id 取对应行） | 圈数（地图变体） |
+| tower_slots | int | 1–N | value_ref: balance/S14_level.json#lvl_tower_slots_lv0X（按 level_id 取对应行） | 塔位数 |
 | path_shape | enum | circle/oval/figure8 | circle | 路径形态 |
 | thumbnail | string | 缩略图 id | "mini_lv01" | 卡内缩略 |
 
 **示例（CSV，5 关递进）**
 ```csv
 level_id,map_id,difficulty,pre_level,wave_set,diff_mult,reward_mult,ring_count,tower_slots,path_shape,thumbnail
-lv_01,map_01,1,null,ws_lv01,1.0,1.0,[PLACEHOLDER]3,[PLACEHOLDER]12,circle,mini_lv01
-lv_02,map_02,2,lv_01,ws_lv02,1.3,1.2,[PLACEHOLDER]3,[PLACEHOLDER]14,oval,mini_lv02
-lv_03,map_03,2,lv_02,ws_lv03,1.5,1.3,[PLACEHOLDER]4,[PLACEHOLDER]16,circle,mini_lv03
-lv_04,map_04,3,lv_03,ws_lv04,1.8,1.5,[PLACEHOLDER]4,[PLACEHOLDER]18,figure8,mini_lv04
-lv_05,map_05,3,lv_04,ws_lv05,2.2,1.8,[PLACEHOLDER]5,[PLACEHOLDER]20,oval,mini_lv05
+lv_01,map_01,1,null,ws_lv01,1.0,1.0,value_ref: balance/S14_level.json#lvl_ring_count_lv01,value_ref: balance/S14_level.json#lvl_tower_slots_lv01,circle,mini_lv01
+lv_02,map_02,2,lv_01,ws_lv02,1.3,1.2,value_ref: balance/S14_level.json#lvl_ring_count_lv02,value_ref: balance/S14_level.json#lvl_tower_slots_lv02,oval,mini_lv02
+lv_03,map_03,2,lv_02,ws_lv03,1.5,1.3,value_ref: balance/S14_level.json#lvl_ring_count_lv03,value_ref: balance/S14_level.json#lvl_tower_slots_lv03,circle,mini_lv03
+lv_04,map_04,3,lv_03,ws_lv04,1.8,1.5,value_ref: balance/S14_level.json#lvl_ring_count_lv04,value_ref: balance/S14_level.json#lvl_tower_slots_lv04,figure8,mini_lv04
+lv_05,map_05,3,lv_04,ws_lv05,2.2,1.8,value_ref: balance/S14_level.json#lvl_ring_count_lv05,value_ref: balance/S14_level.json#lvl_tower_slots_lv05,oval,mini_lv05
 ```
 
 ### 3.2 表 `level_reward`（通关奖励，关联 S8/S11）
@@ -217,30 +228,32 @@ lv_05,map_05,3,lv_04,ws_lv05,2.2,1.8,[PLACEHOLDER]5,[PLACEHOLDER]20,oval,mini_lv
 | 字段 | 类型 | 取值/范围 | 默认值 | 说明 |
 |---|---|---|---|---|
 | level_id | string | 关联 | "lv_01" | 关主键 |
-| first_clear_meta | int | 0–9999 | `[PLACEHOLDER]` | 首通元资源 |
-| repeat_meta | int | 0–9999 | `[PLACEHOLDER]` | 重复通关元资源 |
+| first_clear_meta | int | 0–9999 | value_ref: balance/S14_level.json#lvl_first_clear_meta_lv0X（按 level_id 取对应行） | 首通元资源 |
+| repeat_meta | int | 0–9999 | value_ref: balance/S14_level.json#lvl_repeat_meta_lv0X（按 level_id 取对应行） | 重复通关元资源 |
 | unlock_next | bool | true | true | 是否解锁下一关 |
 
-**示例（CSV）**
+**示例（CSV，5 关）**
 ```csv
 level_id,first_clear_meta,repeat_meta,unlock_next
-lv_01,100,20,true
-lv_02,150,30,true
-lv_03,200,40,true
+lv_01,value_ref: balance/S14_level.json#lvl_first_clear_meta_lv01,value_ref: balance/S14_level.json#lvl_repeat_meta_lv01,true
+lv_02,value_ref: balance/S14_level.json#lvl_first_clear_meta_lv02,value_ref: balance/S14_level.json#lvl_repeat_meta_lv02,true
+lv_03,value_ref: balance/S14_level.json#lvl_first_clear_meta_lv03,value_ref: balance/S14_level.json#lvl_repeat_meta_lv03,true
+lv_04,value_ref: balance/S14_level.json#lvl_first_clear_meta_lv04,value_ref: balance/S14_level.json#lvl_repeat_meta_lv04,true
+lv_05,value_ref: balance/S14_level.json#lvl_first_clear_meta_lv05,value_ref: balance/S14_level.json#lvl_repeat_meta_lv05,true
 ```
 
-### 3.3 无尽入口卡（EndlessEntry · 引用 S32.endless_config）
+### 3.3 无尽入口卡（EndlessEntry · 引用 S29 等级门槛）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | entry_id | string | 固定 "endless" |
 | title_id | string | i18n `ENDLESS_MODE` |
 | desc_id | string | i18n `ENDLESS_DESC` |
-| unlock_level | int | 来自 `S32.endless_config.unlock_level`（S29 等级门槛，双闸门之一） |
+| unlock_level | int | 来自 **S29 玩家等级门槛**（无尽解锁所需 player_level，双闸门之一）；正文旧写 `S32.endless_config.unlock_level` 已归正，见 §6 C-S14-1 |
 | enter_btn_id | string | i18n `ENDLESS_ENTER` |
 | mode | enum | endless（进 S1 + 触发 S4 无尽程序化生成，不载 wave_set） |
 
-> 无尽入口卡为标准选关页顶部的**独立卡片**，与 LevelGrid 网格内关卡卡并列但不同源：网格卡来自 `level_config`(本系统) + `stage_config`(S32)，无尽卡来自 `S32.endless_config`。进关时不载 `map_id`+`wave_config` 固定波表，而是进 S1 地图后由 S4 按 `endless_config` 公式程序化生成敌群（详见 S04 §2.5）。
+> 无尽入口卡为标准选关页顶部的**独立卡片**，与 LevelGrid 网格内关卡卡并列但不同源：网格卡来自 `level_config`(本系统) + `stage_config`(S32)，无尽卡来自 **S29 玩家等级门槛**（原 S32 endless_config 引用已归正，见 §6）。进关时不载 `map_id`+`wave_config` 固定波表，而是进 S1 地图后由 S4 按无尽公式程序化生成敌群（详见 S04 §2.5）。
 > 分辨率自适应：EndlessEntry 锚定 Top-Center（安全区 y≥88 下），九宫拉伸；EndlessEnterBtn 锚定卡内居中；全部避让 顶部 y<88、底部 y>1290，letterbox 时整体缩放（同 S29/S32 基准 750×1334）。
 > 例外说明：本系统边界"不做关卡内随机种子（首版固定）"针对 **standard 关卡**的公平/可复现；无尽模式为生存玩法，敌群由 S04 程序化生成（含轻量随机抽敌种，见 S04 §2.5），不受该规则约束（生存模式无"最优路线"需复现）。
 
@@ -259,3 +272,109 @@ lv_03,200,40,true
 | `level_title` 标题(可选) | 品牌 | 静态 | 300×60 | PNG | 单图 |
 
 > 地图缩略复用 S1 主题；多关地图资源分包见 S19。资源走首分包。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构（字段 / 类型 / 来源 config 字段）
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| level_config[] | json | §3.1 level_config（level_id / map_id / difficulty / pre_level / wave_set / diff_mult / reward_mult / ring_count / tower_slots / path_shape / thumbnail） |
+| level_reward[] | json | §3.2 level_reward（level_id / first_clear_meta / repeat_meta / unlock_next） |
+| save.unlock_progress | json | S18 存档（已通关关集 / 选中态） |
+| S4.wave_config | json | 波表（按 diff_mult 缩放） |
+| S1.map_config | json | 地图（按 ring_count / tower_slots / path_shape 生成） |
+| S29.player_level | int | 无尽入口门控（≥ unlock_level） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| level_grid_state[] | enum | 每卡 锁/可/通 三态 |
+| route_level | enum | in_level(S1) / hub(S10) / endless(S1+S4) |
+| unlock_next_progress | bool | S8 胜后解锁下一关 → S11 |
+
+### 5.3 跨系统接口调用表（caller / callee / function / 方向 / 用途）
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S14 | S18 | queryUnlockProgress() | in | 读已通关关集 |
+| S14 | S18 | saveUnlockProgress(level_id) | out | 标记通关持久化 |
+| S14 | S4 | queryWaveConfig(level_id, diff_mult) | in | 取波表 + 难度缩放 |
+| S14 | S1 | loadMap(map_id) | out | 载地图进局 |
+| S14 | S8 | onLevelClear(level_id) | in | 结算胜 → 触发解锁 |
+| S14 | S11 | unlockNextLevel(next_id) | out | 解锁下一关 |
+| S14 | S29 | queryPlayerLevel() | in | 无尽入口门控 |
+| S14 | S32 | queryEndlessConfig() | in | 无尽模式参数（生成公式） |
+
+### 5.4 错误码表（E# / 场景 / 兜底 / 涉及系统）
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 S20 | 存选中态，onShow 续 | S20/S18 |
+| E02 | 数据损坏 S18 | 重置仅 lv_01 解锁 | S18 |
+| E03 | 关配置缺失 | 该卡灰显 + 告警 S25 | S25 |
+| E04 | 越级进关 | S24 校验 pre_level 拒进 | S24 |
+| E05 | 通关但下一关锁 | 强制解锁 + 告警 S25 | S25 |
+| E06 | 选关中途退出 | onHide 已存进度 | S18 |
+| E07 | 微信登录失败 S42 | 纯本地零阻塞 | S42 |
+| E08 | 网络中断 | 纯本地 N/A | S19 |
+| E09 | 数值极值 | diff_mult/reward_mult 钳 [0.5,3] | — |
+| E10 | 配置缺失(整体) | 仅显 lv_01 | S25 |
+| E11 | 并发进关 | isEntering 锁 0.3s | — |
+| E12 | 分包未加载 S19 | 预载 map + loading 提示 | S19 |
+
+### 5.5 状态转换表（state / event / transition / action）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Open | 进入 | → LoadProgress | 读档 S18 |
+| LoadProgress | 读档完成 | → RenderGrid | 渲染卡三态 |
+| RenderGrid | 点卡 | → Select | — |
+| Select | 点卡 | → CheckUnlock | 校验 pre_level |
+| CheckUnlock | 通关前置 | → Unlocked | 允许选中 |
+| CheckUnlock | 未通关前置 | → Locked | 显 LockTag |
+| Locked | 回网格 | → RenderGrid | — |
+| Unlocked | 点开始 | → Start | — |
+| Start | 确认 | → LoadLevel | 载 map+wave(diff缩放) |
+| LoadLevel | 进局 | → [*] | 进 S1 |
+| RenderGrid | onHide S20 | → Background | — |
+| Background | onShow S20 | → RenderGrid | 续 |
+
+### 5.6 数值消费清单（本系统消费的所有 balance param_id + 来源文件）
+
+| param_id | 来源 balance 文件 | 用途 |
+|---|---|---|
+| lvl_ring_count_lv01 | balance/S14_level.json | lv_01 圈数（§3.1） |
+| lvl_ring_count_lv02 | balance/S14_level.json | lv_02 圈数（§3.1） |
+| lvl_ring_count_lv03 | balance/S14_level.json | lv_03 圈数（§3.1） |
+| lvl_ring_count_lv04 | balance/S14_level.json | lv_04 圈数（§3.1） |
+| lvl_ring_count_lv05 | balance/S14_level.json | lv_05 圈数（§3.1） |
+| lvl_tower_slots_lv01 | balance/S14_level.json | lv_01 塔位数（§3.1） |
+| lvl_tower_slots_lv02 | balance/S14_level.json | lv_02 塔位数（§3.1） |
+| lvl_tower_slots_lv03 | balance/S14_level.json | lv_03 塔位数（§3.1） |
+| lvl_tower_slots_lv04 | balance/S14_level.json | lv_04 塔位数（§3.1） |
+| lvl_tower_slots_lv05 | balance/S14_level.json | lv_05 塔位数（§3.1） |
+| lvl_first_clear_meta_lv01 | balance/S14_level.json | lv_01 首通元资源（§3.2） |
+| lvl_first_clear_meta_lv02 | balance/S14_level.json | lv_02 首通元资源（§3.2） |
+| lvl_first_clear_meta_lv03 | balance/S14_level.json | lv_03 首通元资源（§3.2） |
+| lvl_first_clear_meta_lv04 | balance/S14_level.json | lv_04 首通元资源（§3.2） |
+| lvl_first_clear_meta_lv05 | balance/S14_level.json | lv_05 首通元资源（§3.2） |
+| lvl_repeat_meta_lv01 | balance/S14_level.json | lv_01 重复通关元资源（§3.2） |
+| lvl_repeat_meta_lv02 | balance/S14_level.json | lv_02 重复通关元资源（§3.2） |
+| lvl_repeat_meta_lv03 | balance/S14_level.json | lv_03 重复通关元资源（§3.2） |
+| lvl_repeat_meta_lv04 | balance/S14_level.json | lv_04 重复通关元资源（§3.2） |
+| lvl_repeat_meta_lv05 | balance/S14_level.json | lv_05 重复通关元资源（§3.2） |
+
+> `diff_mult`/`reward_mult` 在 §3.1 CSV 中已给具体值（1.0–2.2，随关递增），非 `[PLACEHOLDER]`，属关卡内缩放系数，balance 未单列 param_id（与上方 per-level 静态配置独立）。
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-S14-1 | 无尽入口解锁门槛：正文/线框旧写引用 `S32.endless_config.unlock_level`，但无尽解锁实为 **S29 玩家等级** 门槛（与标准关卡 `pre_level` 链不同源） | 统一引用 **S29 玩家等级**（`player_level ≥ unlock_level`）作为无尽门控唯一权威；S32 仅提供无尽生成公式，不再持有 unlock_level。删除对 S32.endless_config.unlock_level 的引用 | S14 / S29 |
+| C-S14-2 | `diff_mult`/`reward_mult` §3.1 已给具体值（非 [PLACEHOLDER]），但未纳入 balance/S14_level.json 调优表 | 是否将 diff_mult/reward_mult 提升为 balance param_id 纳入轨道 B 统一调优（建议：纳入，便于跨关难度曲线集中调参） | S14 |

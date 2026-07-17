@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "analytics_config",
+  "type": "object",
+  "properties": {
+    "buffer_max": {
+      "type": "number"
+    },
+    "inflation_threshold": {
+      "type": "number"
+    },
+    "report_interval": {
+      "type": "number"
+    },
+    "sample_rate": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

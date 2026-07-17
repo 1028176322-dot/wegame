@@ -1,14 +1,20 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S22 设置系统 (Settings System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：MVP / P1 · 关联 F 码：F39 · 关联：SYSTEM_BREAKDOWN §S22 · GDD §7（无障碍）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：5 行组件 + 模块表 5 行 + 3 异常 + 单表 5 字段）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：MVP / P1
+- 关联 F 码：F39
+- 关联系统：S23（音频开关镜像）、S7（字号/点击区重排）、S28（auto_cast_active）、S18（设置落档）、S10（返回大厅）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：`wx.vibrateShort`；S18 写锁（落档）
+- NEEDS-DESIGN 索引：无（本系统纯配置/逻辑，无 balance 调优杆；`settings_config` 开关/枚举属 config 层，见 §5.6）
 > **v0.2-rev（耦合重构）：** 按 DO 新规新增 **`auto_cast_active`（主动技自动释放开关）**——开启后战斗中塔主动技在 CD 好且有目标时自动释放（手动点击仍可用，见 S28）。已在设置页线框/组件表/配置表/示例数据中补齐。
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
@@ -223,3 +229,72 @@ sequenceDiagram
 | 未保存提示 toast | UI 九宫 | 1 | 源 64×64（拉伸 300×56） | PNG-8 | 九宫圆角 | z=30 提示 |
 
 > 复用通用 UI 组件库；震动无美术；所有切片遵循微信单图 ≤128KB、合图集原则（见 S19 F34）。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| bgm / sfx | bool | `settings_config.bgm` / `.sfx`（镜像 S23） |
+| shake | bool | `settings_config.shake` |
+| font_size | enum | `settings_config.font_size`（small/medium/large） |
+| tap_scale | enum | `settings_config.tap_scale`（normal/large） |
+| auto_cast_active | bool | `settings_config.auto_cast_active`（交 S28） |
+| language | enum | `settings_config.language`（zh-CN） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| settings_patch | object | 变更后的设置补丁 |
+| save_result | bool | S18 落档成功/失败 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S22 | S23 | `setBgmEnabled` / `setSfxEnabled` | out | 音频开关即时 |
+| S22 | S7 | 字号/点击区 | out | UI 重排 |
+| S22 | S28 | `auto_cast_active` | out | 主动技自动释放 |
+| S22 | S18 | `save(settings)` | out | 落档 |
+| S22 | wx | `vibrateShort` | out | 震动 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 写存失败 | 内存生效+未保存提示 | S18 |
+| E2 | 非法值 | 默认 medium/标准 | — |
+| E3 | 震动不支持 | 静默忽略 | wx |
+| E4 | 字号极值溢出 | 安全区+自动缩放 | S7 |
+| E5 | 语言未支持 | 回落 zh-CN | — |
+| E6 | 多系统监听竞态 | S23 立即静音 | S23 |
+| E7 | 连点开关 | 防抖取终态 | — |
+| E8 | 读档缺字段 | settings_config 默认补 | S18 |
+| E9 | 返回时存进行中 | 等存完成/补存队列 | S18 |
+| E10 | 点击区放大冲突 | S7 重排保间距 | S7 |
+| E11 | 弱网无关 | 纯本地 | — |
+| E12 | 配置默认缺失 | 代码内建默认 | S18 |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| PageIdle | 进入设置页 | → Reading | — |
+| Reading | 读 save.settings | → Rendered | 渲染控件 |
+| Rendered | 用户操作控件 | → Editing | — |
+| Editing | 取值 | → Validating | — |
+| Validating | 值合法 | → Persisting | — |
+| Validating | 值非法 | → Revert | 用默认 |
+| Persisting | 广播系统 | → Applying | — |
+| Applying | save(settings) | → Saving | — |
+| Saving | S18 成功 | → Saved | 继续/返回 |
+| Saving | S18 fail | → SaveFail | 内存生效+提示 |
+| Saved / SaveFail | 点返回 | → Closing | 补存 |
+| Closing | 补存完成 | → [*] | 回大厅 |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯配置/逻辑：`settings_config` 开关/枚举为 config 层（非 balance），由 `config/settings_config.json` 持有；`auto_cast_active` 由 S28 读取。
+
+## 6. 冲突与待裁定
+
+### 6.1 冲突汇总
+本系统无 DO 待裁定冲突项。

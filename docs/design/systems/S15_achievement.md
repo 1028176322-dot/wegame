@@ -1,10 +1,22 @@
 # 系统策划案：S15 成就系统 (Achievement System)
 
 > 归属域：B 元进度社交域 · 层级/优先级：增强 / P2 · 关联 F 码：F37 · 关联：SYSTEM_BREAKDOWN §S15
-> 状态：v0.2-detailed · 日期 2026-07-17
+> 状态：v0.3-ai-readable · 日期 2026-07-17
 > 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
 > 数值约定：凡涉及阈值/奖励量的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
 > 边界：不做成就排行榜（避免压力叠加）；不做付费成就（见 SYSTEM_BREAKDOWN §S15）。
+
+---
+
+## 0. 元数据头
+
+- 归属域：B 元进度社交域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F37
+- 关联文档：SYSTEM_BREAKDOWN §S15
+- 依赖系统：S5（战斗行为：击杀/连杀）、S6（漏怪行为：零漏）、S11（元进度入账）、S18（存档）、S8（结算安全点弹窗）、S20（生命周期）、S25（告警）、S42（登录，暂不做）
+- 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- NEEDS-DESIGN 索引：无（本系统所有 `[PLACEHOLDER]` 已在 balance/S15_achievement.json 给初值）
 
 ---
 
@@ -26,7 +38,7 @@
 
 ```
   0       150      300      450      600      750
-  ┌──────────────────────────────────────────────┐ y=0
+  ┌──────────────────────────────────────┐ y=0
   │ (20,40)⟲返回    成就           │ y=40  BackBtn 64×64
   │ ┌────┐┌────┐┌────┐  TabBar 750×60          │ y=120
   │ │战斗││养成││挑战│                            │
@@ -42,7 +54,7 @@
   │     │  🎉 成就达成！        │                  │
   │     │  养成大师 +[R] 元资源  │                  │
   │     └────────────────────┘                  │
-  └──────────────────────────────────────────────┘ y=1334
+  └──────────────────────────────────────┘ y=1334
 ```
 
 ### 1.3 组件表（精确坐标 / 尺寸 / 层级 / 响应）
@@ -157,8 +169,8 @@ sequenceDiagram
 | name | string | ≤10 字 | — | 显示名 |
 | category | enum | battle/build/challenge | battle | 分类 |
 | condition | enum | kill_total/upgrade_lv/zero_leak/combo_kill/specific_tower_clear/... | kill_total | 触发条件 |
-| target | int | 1–9999 | `[PLACEHOLDER]` | 目标值（调优杆） |
-| reward | int | 0–9999 | `[PLACEHOLDER]` | 元资源奖励（调优杆） |
+| target | int | 1–9999 | value_ref: balance/S15_achievement.json#ach_firstkill_target（按 condition 取对应行：combo→ach_combo_target / upgrade_lv→ach_lv10_target / zero_leak→ach_zeroleak_target / specific_tower_clear→ach_towerclear_target） | 目标值（调优杆） |
+| reward | int | 0–9999 | value_ref: balance/S15_achievement.json#ach_firstkill_reward（按 ach_id 取对应行：a_combo→ach_combo_reward / a_lv10→ach_lv10_reward / a_zeroleak→ach_zeroleak_reward / a_towerclear→ach_towerclear_reward） | 元资源奖励（调优杆） |
 | multi_step | bool | false | false | 是否多步 |
 | icon_id | string | 图标 id | "ach_01" | 图标 |
 | desc | string | ≤20 字 | — | 说明 |
@@ -167,11 +179,11 @@ sequenceDiagram
 **示例（CSV，覆盖三分类）**
 ```csv
 ach_id,name,category,condition,target,reward,multi_step,icon_id,desc,track_event
-a_firstkill,初次击杀,battle,kill_total,1,[PLACEHOLDER]10,false,ach_01,首次击杀怪物,S5.kill
-a_combo,连杀大师,battle,combo_kill,20,[PLACEHOLDER]50,false,ach_02,单局连杀20,S5.combo
-a_lv10,养成大师,build,upgrade_lv,10,[PLACEHOLDER]100,false,ach_03,养到10级塔,S2.upgrade
-a_zeroleak,零漏通关,challenge,zero_leak,1,[PLACEHOLDER]200,false,ach_04,零漏通关,S6.leak
-a_towerclear,全塔通关,challenge,specific_tower_clear,7,[PLACEHOLDER]300,false,ach_05,7塔各通关,S8.clear
+a_firstkill,初次击杀,battle,kill_total,value_ref: balance/S15_achievement.json#ach_firstkill_target,value_ref: balance/S15_achievement.json#ach_firstkill_reward,false,ach_01,首次击杀怪物,S5.kill
+a_combo,连杀大师,battle,combo_kill,value_ref: balance/S15_achievement.json#ach_combo_target,value_ref: balance/S15_achievement.json#ach_combo_reward,false,ach_02,单局连杀20,S5.combo
+a_lv10,养成大师,build,upgrade_lv,value_ref: balance/S15_achievement.json#ach_lv10_target,value_ref: balance/S15_achievement.json#ach_lv10_reward,false,ach_03,养到10级塔,S2.upgrade
+a_zeroleak,零漏通关,challenge,zero_leak,value_ref: balance/S15_achievement.json#ach_zeroleak_target,value_ref: balance/S15_achievement.json#ach_zeroleak_reward,false,ach_04,零漏通关,S6.leak
+a_towerclear,全塔通关,challenge,specific_tower_clear,value_ref: balance/S15_achievement.json#ach_towerclear_target,value_ref: balance/S15_achievement.json#ach_towerclear_reward,false,ach_05,7塔各通关,S8.clear
 ```
 
 ### 3.2 表 `achievement_progress`（进度持久化，S18）
@@ -179,7 +191,7 @@ a_towerclear,全塔通关,challenge,specific_tower_clear,7,[PLACEHOLDER]300,fals
 | 字段 | 类型 | 取值/范围 | 默认值 | 说明 |
 |---|---|---|---|---|
 | ach_id | string | 关联 | — | 成就主键 |
-| progress | int | 0–target | 0 | 当前进度 |
+| progress | int | 0–target | 0 | 当前进度（运行期累加值，非调优量） |
 | completed | bool | false | false | 是否达成 |
 | completed_at | datetime | — | null | 达成时间 |
 
@@ -205,3 +217,92 @@ a_zeroleak,0,false,null
 | `tab_bar` 分类标签底 | 导航 | 静态 | 750×60 | PNG 九宫 | 3×3 切片，横向拉伸 |
 
 > 图标风格统一；特效见 S23。资源走主包或首分包（S19）。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构（字段 / 类型 / 来源 config 字段）
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| achievement_config[] | json | §3.1 achievement_config（ach_id / name / category / condition / target / reward / multi_step / icon_id / desc / track_event） |
+| achievement_progress[] | json | §3.2 achievement_progress（ach_id / progress / completed / completed_at） |
+| track_event | string | S5.kill / S5.combo / S2.upgrade / S6.leak / S8.clear（事件源订阅） |
+| save.completed_set | json | S18 存档（已达成 ach_id 集） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| achievement_done | bool | 本次达成标记（幂等，已 completed 不重发） |
+| grant_amount | int | 实际入账 meta_res（来自 reward） |
+| popup_queue[] | json | 安全点弹窗队列（延后至 S8 结算弹） |
+
+### 5.3 跨系统接口调用表（caller / callee / function / 方向 / 用途）
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S15 | S18 | loadAchConfig() | in | 读成就定义 + 进度 |
+| S15 | S18 | saveProgress(ach_id, progress, completed) | out | 持久化进度（节流） |
+| S15 | S5 | subscribeEvent("kill"/"combo") | in | 战斗行为进度源 |
+| S15 | S6 | subscribeEvent("leak") | in | 漏怪行为进度源 |
+| S15 | S11 | addMetaRes(reward) | out | 达成发奖入账 |
+| S15 | S25 | reportGrantFail() | out | E06 回滚告警 |
+
+### 5.4 错误码表（E# / 场景 / 兜底 / 涉及系统）
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 S20 | 暂停事件采集，onShow 续 | S20 |
+| E02 | 数据损坏 S18 | 保留已完成，进行中重置 0 | S18 |
+| E03 | 成就配置缺失 | 该成就不显 + 告警 S25 | S25 |
+| E04 | 重复达成 | completed 幂等防双发 | — |
+| E05 | 进度溢出 | 截断至 target | — |
+| E06 | 奖励发放失败 | 回滚 completed + 告警 S25 | S25 |
+| E07 | 微信登录失败 S42 | 纯本地零阻塞 | S42 |
+| E08 | 网络中断 | 纯本地 N/A | — |
+| E09 | 数值极值 | target≤0 即时达成；progress 钳制 | — |
+| E10 | 配置缺失(整体) | 空列表可进页 | S25 |
+| E11 | 并发达成 | isGranting 锁幂等 | — |
+| E12 | 弹窗打断战斗 | 完成即时，Popup 延后安全点 | S8 |
+
+### 5.5 状态转换表（state / event / transition / action）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Open | 进入 | → LoadDef | 读 achievement_config |
+| LoadDef | 读档完成 | → Render | 渲染列表(进度/完成态) |
+| Render | 对局事件 S5/S6 | → Track | — |
+| Track | 事件到达 | → Accumulate | 累加进度 |
+| Accumulate | 累加完成 | → Check | 达阈值? |
+| Check | 达阈值 & 未达成 | → Grant | 标记完成 + 发奖 S11 + 持久化 |
+| Grant | 入账成功 | → Popup | 排队完成弹窗(安全点) |
+| Check | 未达 | → Render | — |
+| Popup | 弹窗结束 | → Render | — |
+| Render | onHide S20 | → Background | 暂停采集 |
+| Background | onShow S20 | → Render | 续 |
+
+### 5.6 数值消费清单（本系统消费的所有 balance param_id + 来源文件）
+
+| param_id | 来源 balance 文件 | 用途 |
+|---|---|---|
+| ach_firstkill_target | balance/S15_achievement.json | 初次击杀目标值（§3.1 a_firstkill） |
+| ach_combo_target | balance/S15_achievement.json | 连杀大师目标值（§3.1 a_combo） |
+| ach_lv10_target | balance/S15_achievement.json | 养成大师目标值（§3.1 a_lv10） |
+| ach_zeroleak_target | balance/S15_achievement.json | 零漏通关目标值（§3.1 a_zeroleak） |
+| ach_towerclear_target | balance/S15_achievement.json | 全塔通关目标值（§3.1 a_towerclear） |
+| ach_firstkill_reward | balance/S15_achievement.json | 初次击杀奖励（§3.1 a_firstkill） |
+| ach_combo_reward | balance/S15_achievement.json | 连杀大师奖励（§3.1 a_combo） |
+| ach_lv10_reward | balance/S15_achievement.json | 养成大师奖励（§3.1 a_lv10） |
+| ach_zeroleak_reward | balance/S15_achievement.json | 零漏通关奖励（§3.1 a_zeroleak） |
+| ach_towerclear_reward | balance/S15_achievement.json | 全塔通关奖励（§3.1 a_towerclear） |
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-S15-1 | 进度源为 S5/S6 本地战斗事件（kill/combo/leak）；奖励接 S11 元资源 | 是否接入 **S29 玩家等级** 维度成就（如「养到 Lv.N 总等级」）——S29 明确「不做等级排行榜」，但等级维度成就可独立存在；建议仅在 S29 稳定后新增，不影响现有 5 项 | S15 / S29 |
+| C-S15-2 | `multi_step=false`（默认单步达成）；现有 5 项成就均为单达成 | 是否实装多步成就（进度条 `ProgressBar` 已预留）——需先定义多步递增规则与防刷；建议 P3 增强期再做 | S15 |

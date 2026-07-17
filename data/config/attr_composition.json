@@ -1,0 +1,11 @@
+{
+  "growth_base": 1.5,
+  "lvl_dmg_mult_lv1": 1.0,
+  "lvl_dmg_mult_lv20": 1.5,
+  "lvl_range_mult_lv1": 1.0,
+  "lvl_range_mult_lv20": 1.5,
+  "lvl_atkspd_mult_lv1": 1.0,
+  "lvl_atkspd_mult_lv20": 1.5,
+  "skill_mod_default": 1.0,
+  "buff_mod_default": 1.0
+}

@@ -9,6 +9,16 @@
 
 ---
 
+## 0. 元数据头
+
+> 归属域：A 核心战斗域 · 层级/优先级：MVP / P0 · 关联 F 码：F1 · 关联：GDD §4；SYSTEM_BREAKDOWN §S1
+> 状态：v0.2-detailed · 日期 2026-07-17
+> 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
+> **v0.2-rev（耦合重构）：** 按 DO 新规新增地图 UI——选中塔**技能按钮区**(S28 z51)、**木掉落实时指示**(z52)、木计数 HUD 位置明确；线框补**分辨率自适应**(锚点/九宫格/相对比例/安全区/letterbox/DPR)；交互流程图加入技能按钮分支。
+> 平衡数值（圈数、环线半径、怪物移速、塔位总数等）保持 `[PLACEHOLDER]`，仅标注"调优杆"说明其影响，禁止硬编码。
+
+---
+
 ## 1. 系统 UI 布局
 
 地图系统是"战斗内主场景"，其界面即战场视图；无独立菜单页。
@@ -174,31 +184,31 @@ sequenceDiagram
 
 **表名：`map_config`（地图配置）**
 
-| 字段 | 类型 | 取值范围 | 默认值 | 说明 |
+| 字段 | 类型 | 取值范围 | 默认值（指针） | 说明 |
 |---|---|---|---|---|
 | map_id | string | 唯一，如 "map_01" | — | 地图主键 |
 | map_name | string | 非空 | "默认图" | 显示名（S14 选关用） |
 | theme | enum | grass / ice / lava / desert | "grass" | 视觉主题，决定皮肤包 |
-| ring_count | int | 1–6 | `[PLACEHOLDER]` | 环形路径圈数。**调优杆**：影响怪物被多塔命中次数与单局时长（P1/P5） |
-| ring_radius | float[] | 每元素 >0，长度=ring_count | `[PLACEHOLDER]` | 每圈半径(px，设计基准)。**调优杆**：内/外圈覆盖差异 |
-| loop_count | int | 1–N | `[PLACEHOLDER]` | 怪物需绕满圈数才抵达终点出口。**调优杆**：与单局波数共同决定时长 |
+| ring_count | int | 1–6 | `value_ref: balance/S01_map.json#sys_ring_count` | 环形路径圈数。**调优杆**：影响怪物被多塔命中次数与单局时长（P1/P5） |
+| ring_radius | float[] | 每元素 >0，长度=ring_count | `value_ref: balance/S01_map.json#sys_ring_radius` | 每圈半径(px，设计基准)。**调优杆**：内/外圈覆盖差异 |
+| loop_count | int | 1–N | `value_ref: balance/S01_map.json#sys_loop_count` | 怪物需绕满圈数才抵达终点出口。**调优杆**：与单局波数共同决定时长 |
 | path_points | json | 合法坐标数组，≥2 点 | — | 路点序列（怪物移动轨迹，闭环） |
 | tower_slots | json | 合法坐标数组 | — | 塔位中心坐标列表（路径内侧） |
 | slot_size | int | 40–160 | 80 | 单塔位点击区边长（结构值，可默认） |
-| slot_inner_count | int | 0–200 | `[PLACEHOLDER]` | 内环塔位数。**调优杆**：内圈 DPS 利用率 |
-| slot_outer_count | int | 0–200 | `[PLACEHOLDER]` | 外环塔位数（贵但覆盖长） |
-| move_speed | float | 20–200 | `[PLACEHOLDER]` | 怪物基础移动速度(px/s)。**调优杆**：出怪节奏与反应窗口 |
+| slot_inner_count | int | 0–200 | `value_ref: balance/S01_map.json#sys_slot_inner_count` | 内环塔位数。**调优杆**：内圈 DPS 利用率 |
+| slot_outer_count | int | 0–200 | `value_ref: balance/S01_map.json#sys_slot_outer_count` | 外环塔位数（贵但覆盖长） |
+| move_speed | float | 20–200 | `value_ref: balance/S01_map.json#sys_move_speed` | 怪物基础移动速度(px/s)。**调优杆**：出怪节奏与反应窗口 |
 | bg_res | string | 资源 id | "bg_grass" | 背景底图资源名（S19 分包） |
 | path_res | string | 资源 id | "path_grass" | 路径贴图资源名 |
 | pack_id | string | 分包 id | "pkg_map" | 归属分包（S19） |
 
-**多行示例数据（CSV 头部 + 3 行；平衡字段以 `[PLACEHOLDER]` 占位，结构字段给示例值）**
+**多行示例数据（CSV 头部 + 3 行；平衡字段全部改 `value_ref` 指针，结构字段给示例值）**
 
 ```csv
 map_id,map_name,theme,ring_count,ring_radius,loop_count,path_points,tower_slots,slot_size,slot_inner_count,slot_outer_count,move_speed,bg_res,path_res,pack_id
-map_01,青草环,grass,[PLACEHOLDER],"[PLACEHOLDER]","[PLACEHOLDER]","[[375,300],[575,300],[575,700],[175,700],[175,300]]","[[300,420],[450,420],[300,560],[450,560]]",80,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],bg_grass,path_grass,pkg_map
-map_02,寒冰环,ice,[PLACEHOLDER],"[PLACEHOLDER]","[PLACEHOLDER]","[[375,320],[560,320],[560,720],[190,720],[190,320]]","[[310,440],[440,440],[310,580],[440,580]]",80,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],bg_ice,path_ice,pkg_map
-map_default,默认环,grass,[PLACEHOLDER],"[PLACEHOLDER]","[PLACEHOLDER]","[[375,300],[575,300],[575,700],[175,700],[175,300]]","[[300,450],[450,450]]",80,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],bg_grass,path_grass,pkg_map
+map_01,青草环,grass,value_ref:balance/S01_map.json#sys_ring_count,"value_ref:balance/S01_map.json#sys_ring_radius","value_ref:balance/S01_map.json#sys_loop_count","[[375,300],[575,300],[575,700],[175,700],[175,300]]","[[300,420],[450,420],[300,560],[450,560]]",80,value_ref:balance/S01_map.json#sys_slot_inner_count,value_ref:balance/S01_map.json#sys_slot_outer_count,value_ref:balance/S01_map.json#sys_move_speed,bg_grass,path_grass,pkg_map
+map_02,寒冰环,ice,value_ref:balance/S01_map.json#sys_ring_count,"value_ref:balance/S01_map.json#sys_ring_radius","value_ref:balance/S01_map.json#sys_loop_count","[[375,320],[560,320],[560,720],[190,720],[190,320]]","[[310,440],[440,440],[310,580],[440,580]]",80,value_ref:balance/S01_map.json#sys_slot_inner_count,value_ref:balance/S01_map.json#sys_slot_outer_count,value_ref:balance/S01_map.json#sys_move_speed,bg_ice,path_ice,pkg_map
+map_default,默认环,grass,value_ref:balance/S01_map.json#sys_ring_count,"value_ref:balance/S01_map.json#sys_ring_radius","value_ref:balance/S01_map.json#sys_loop_count","[[375,300],[575,300],[575,700],[175,700],[175,300]]","[[300,450],[450,450]]",80,value_ref:balance/S01_map.json#sys_slot_inner_count,value_ref:balance/S01_map.json#sys_slot_outer_count,value_ref:balance/S01_map.json#sys_move_speed,bg_grass,path_grass,pkg_map
 ```
 
 > 说明：`path_points`/`tower_slots` 在 CSV 中以 JSON 字符串存储；引擎侧建议直读 JSON 配置表避免转义。平衡字段（标 `[PLACEHOLDER]`）须经试玩调优，禁止在代码硬编码。
@@ -219,3 +229,81 @@ map_default,默认环,grass,[PLACEHOLDER],"[PLACEHOLDER]","[PLACEHOLDER]","[[375
 | 主题皮肤包（grass/ice/lava/desert） | — | 各 750×1334 + 1024×1024 | PNG/Atlas | 替换底图/路径色，按 theme 加载 |
 
 > 资源经 S19 分包加载；压缩规范与图集打包见 S19/S34。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| map_id | string | `map_config.map_id`（本系统 §3） |
+| map_variant | string | `stage_config.map_variant`（S32 §3，FK→map_id） |
+| session_player_level | int | `player_level_config[level]`（S29，建塔时套用） |
+| tower_slot_events | event | S2 建/卖塔 → 占用表回调 |
+| path_points / tower_slots | json | `map_config`（本系统 §3） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| tower_slot_table | bool[][] | 塔位占用表（S2 消费） |
+| battlefield_ready | event | 战场就绪（→S2/S5） |
+| map_default_applied | flag | 配置缺失时回退 map_default（记 S25） |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S8 | S1 | `loadMap(map_id)` | in | 开局加载地图 |
+| S1 | S19 | `pullSubpackage(pack_id)` | in | 拉取地图分包资源 |
+| S1 | S2 | `onTowerSlotsReady(slot_table)` | out | 塔位占用表就绪 |
+| S1 | S8 | `onBattlefieldReady()` | out | 战场就绪可开波 |
+| S2 | S1 | `occupySlot(slot_id)` / `releaseSlot(slot_id)` | in | 建/卖塔占/释塔位 |
+| S1 | S5 | `spawnEnemyOnPath(enemy, path_points)` | out | 怪物沿路径布点 |
+| S1 | S6 | `onReachEnd(enemy)` | out | 漏怪回调（终点） |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 分包下载失败（S19） | 重试 3 次 → 内置默认图 + 本地缓存，记 S25 | S19/S25 |
+| E02 | 切后台 onHide(S20) | 全局暂停广播，坐标/塔位零错乱 | S20 |
+| E03 | map_config 损坏/缺 | 回退 map_default，记 S25 | S25 |
+| E04 | 并发连点塔位 | 首次命中为准，防抖队列 | S2 |
+| E05 | ring_count=0 或 >6 | 钳制 [1,6] + 告警 | S24 |
+| E06 | move_speed≤0 | 钳制 min 20(px/s) | S24 |
+| E07 | ring_radius 含 0/负 | 剔除该圈重算 | S24 |
+| E08 | map_id 不存在 / path_points<2 | 阻断该局，上报 S10 | S10/S25 |
+| E09 | tower_slots 越界/重叠 | 忽略该格 / 保留其一 | S25 |
+
+### 5.5 状态转换表
+
+| state | event | transition | action |
+|---|---|---|---|
+| Unloaded | 进入单局(S8开局) | → Loading | 读 map_config，拉分包 |
+| Loading | 资源+配置就绪 | → Ready | 解析路径/塔位/背景 |
+| Loading | 资源/配置缺失或损坏 | → Fallback | 套用 map_default，记 S25 |
+| Fallback | 套用 map_default | → Ready | 实例化场景 |
+| Ready | 首波准备期完成 | → Running | 进入战斗 |
+| Running | onHide(S20) | → Paused | 全局暂停广播 |
+| Paused | onShow(S20) | → Running | 恢复计时 |
+| Running | 全清(胜)/Lives=0(败)(S8) | → Settling | 进结算 |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| sys_ring_count | balance/S01_map.json |
+| sys_ring_radius | balance/S01_map.json |
+| sys_loop_count | balance/S01_map.json |
+| sys_slot_inner_count | balance/S01_map.json |
+| sys_slot_outer_count | balance/S01_map.json |
+| sys_move_speed | balance/S01_map.json |
+
+---
+
+## 6. 冲突与待裁定
+
+本系统无跨系统冲突或待裁定项；命名（armor_type 枚举、电塔 id 等）均按 S30 权威对齐，数值初值已全部锁定于 `balance/S01_map.json`，无 `NEEDS-DESIGN`。

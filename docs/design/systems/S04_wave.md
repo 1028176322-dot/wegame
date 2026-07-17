@@ -1,6 +1,8 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S4 波次系统 (Wave System)
 
+## 0. 元数据头
+
 > 归属域：A 核心战斗域 · 层级/优先级：MVP / P0 · 关联 F 码：F6 · 关联：GDD §5.5；SYSTEM_BREAKDOWN §S4
 > 状态：v0.2-detailed · 日期 2026-07-17
 > 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
@@ -153,7 +155,7 @@ sequenceDiagram
   - `6 ≤ w ≤ 15`：+ `e_heavy_01`（重甲，弱 cannon/poison）
   - `16 ≤ w ≤ 30`：+ `e_air_01`（空军，弱 electric/对空）
   - `31 ≤ w ≤ 50`：+ `e_magic_immune_01`（魔免，弱物理）
-  - `w > 50`：全类型混编 + `e_poison_01`（毒甲肉盾，弱 poison）
+  - `w > 50`：全类型混编 + `e_poison_01`（air 甲肉盾，弱 electric；原毒甲已按 N3 并入 air 甲）
   - 每波从当前已解锁区间**随机抽 1–2 种**组合（保证 P4 取舍，避免单一解）。
 - **数量**：`count = min(200, 8 + 4×(w-1))`（复用 `wave_count` 公式；同屏上限 60 分批）。
 - **间隔/准备期**：`spawn_interval = max(0.4, 1.2 − 0.03×(w-1))`、`prep_time = max(3, 8 − 0.1×(w-1))`（复用 S04 全局公式）。
@@ -193,33 +195,33 @@ sequenceDiagram
 | level_id | string | 关联 S14 | "lv_01" | 所属关卡 |
 | wave_index | int | 1–N | — | 第几波（N=单局波数） |
 | enemy_type | enum | normal/air/boss/special | "normal" | 怪物类型 |
-| count | int | 1–200 | `[PLACEHOLDER]` | 数量。**调优杆**：压力曲线 |
-| spawn_interval | float | 0.1–10 | `[PLACEHOLDER]` | 出场间隔(s)。**调优杆**：节奏 |
-| base_hp | int | 1–100000 | `[PLACEHOLDER]` | 本波怪物基础血量（随波缩放）。**调优杆**：难度 |
-| armor_type | enum | none/light/heavy/magic_immune/poison | none | 护甲（决定克制） |
+| count | int | 1–200 | `value_ref: balance/S04_wave.json#wave_count` | 数量。**调优杆**：压力曲线 |
+| spawn_interval | float | 0.1–10 | `value_ref: balance/S04_wave.json#wave_spawn_interval` | 出场间隔(s)。**调优杆**：节奏 |
+| base_hp | int | 1–100000 | `value_ref: balance/S04_wave.json#wave_base_hp` | 本波怪物基础血量（随波缩放）。**调优杆**：难度 |
+| armor_type | enum | none/light/heavy/magic_immune/air | none | 护甲（决定克制）；原 `poison` 毒甲枚举已按 N3 并入 `air`（权威见 S30 `ArmorType`） |
 | is_boss | bool | true/false | false | 是否 Boss 波 |
 | boss_mechanic | enum | null/speedup/heal_cut | null | Boss 特殊机制 |
-| prep_time | float | 0–30 | `[PLACEHOLDER]` | 准备期(s)。**调优杆**：决策窗口 |
-| reward_mult | float | 0.5–5 | `[PLACEHOLDER]` | 本波奖励倍率（金，非木）。**调优杆**：金产出 |
-| drop_wood_chance | float | 0–1 | `[PLACEHOLDER]` | 本波每只怪掉木概率（session 木主源）。**调优杆**：养塔木供给节奏 |
-| drop_wood_amount | int | 1–999 | `[PLACEHOLDER]` | 命中掉木量（session）。**调优杆**：单次掉木强度 |
-| spawn_loops | int | 1–loop_count | `[PLACEHOLDER]` | 本波怪绕圈数（接 S1） |
+| prep_time | float | 0–30 | `value_ref: balance/S04_wave.json#wave_prep_time` | 准备期(s)。**调优杆**：决策窗口 |
+| reward_mult | float | 0.5–5 | `value_ref: balance/S04_wave.json#wave_reward_mult` | 本波奖励倍率（金，非木）。**调优杆**：金产出 |
+| drop_wood_chance | float | 0–1 | `value_ref: balance/S04_wave.json#wave_drop_wood_chance` | 本波每只怪掉木概率（session 木主源）。**调优杆**：养塔木供给节奏 |
+| drop_wood_amount | int | 1–999 | `value_ref: balance/S04_wave.json#wave_drop_wood_amount` | 命中掉木量（session）。**调优杆**：单次掉木强度 |
+| spawn_loops | int | 1–loop_count | `value_ref: balance/S04_wave.json#wave_spawn_loops` | 本波怪绕圈数（接 S1） |
 
 **全局波数参数（单例，非逐波）**
 
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 |
 |---|---|---|---|---|
-| total_waves | int | 10–100 | `[PLACEHOLDER]` | 单局总波数（GDD：`[PLACEHOLDER]` 50）。**调优杆**：P5 时长硬约束 |
-| boss_every | int | 5–20 | `[PLACEHOLDER]` | 每 N 波一个 Boss（GDD：每 `[PLACEHOLDER]` 10 波）。**调优杆**：情绪高点 |
+| total_waves | int | 10–100 | `value_ref: balance/S04_wave.json#wave_total_waves` | 单局总波数（GDD 初值 50）。**调优杆**：P5 时长硬约束 |
+| boss_every | int | 5–20 | `value_ref: balance/S04_wave.json#wave_boss_every` | 每 N 波一个 Boss（GDD 初值：每 10 波）。**调优杆**：情绪高点 |
 
 **多行示例数据（CSV；数值列 `[PLACEHOLDER]` 为待调优占位）**
 
 ```csv
 wave_id,level_id,wave_index,enemy_type,count,spawn_interval,base_hp,armor_type,is_boss,boss_mechanic,prep_time,reward_mult,drop_wood_chance,drop_wood_amount,spawn_loops
-w_lv01_01,lv_01,1,normal,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],none,false,null,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER]
-w_lv01_03,lv_01,3,normal,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],light,false,null,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER]
-w_lv01_05,lv_01,5,air,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],none,false,null,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER]
-w_lv01_10,lv_01,10,boss,1,[PLACEHOLDER],[PLACEHOLDER],heavy,true,speedup,[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER]
+w_lv01_01,lv_01,1,normal,value_ref:balance/S04_wave.json#wave_count,value_ref:balance/S04_wave.json#wave_spawn_interval,value_ref:balance/S04_wave.json#wave_base_hp,none,false,null,value_ref:balance/S04_wave.json#wave_prep_time,value_ref:balance/S04_wave.json#wave_reward_mult,value_ref:balance/S04_wave.json#wave_drop_wood_chance,value_ref:balance/S04_wave.json#wave_drop_wood_amount,value_ref:balance/S04_wave.json#wave_spawn_loops
+w_lv01_03,lv_01,3,normal,value_ref:balance/S04_wave.json#wave_count,value_ref:balance/S04_wave.json#wave_spawn_interval,value_ref:balance/S04_wave.json#wave_base_hp,light,false,null,value_ref:balance/S04_wave.json#wave_prep_time,value_ref:balance/S04_wave.json#wave_reward_mult,value_ref:balance/S04_wave.json#wave_drop_wood_chance,value_ref:balance/S04_wave.json#wave_drop_wood_amount,value_ref:balance/S04_wave.json#wave_spawn_loops
+w_lv01_05,lv_01,5,air,value_ref:balance/S04_wave.json#wave_count,value_ref:balance/S04_wave.json#wave_spawn_interval,value_ref:balance/S04_wave.json#wave_base_hp,none,false,null,value_ref:balance/S04_wave.json#wave_prep_time,value_ref:balance/S04_wave.json#wave_reward_mult,value_ref:balance/S04_wave.json#wave_drop_wood_chance,value_ref:balance/S04_wave.json#wave_drop_wood_amount,value_ref:balance/S04_wave.json#wave_spawn_loops
+w_lv01_10,lv_01,10,boss,1,value_ref:balance/S04_wave.json#wave_spawn_interval,value_ref:balance/S04_wave.json#wave_base_hp,heavy,true,speedup,value_ref:balance/S04_wave.json#wave_prep_time,value_ref:balance/S04_wave.json#wave_reward_mult,value_ref:balance/S04_wave.json#wave_drop_wood_chance,value_ref:balance/S04_wave.json#wave_drop_wood_amount,value_ref:balance/S04_wave.json#wave_spawn_loops
 ```
 
 > 掉木说明：`drop_wood_chance`/`drop_wood_amount` 为 session 木主源（替代原木房产木/通关木奖励）；Boss 波可配更高掉率作为养塔关键木点。所有值 `[PLACEHOLDER]` 待调优。
@@ -240,3 +242,91 @@ w_lv01_10,lv_01,10,boss,1,[PLACEHOLDER],[PLACEHOLDER],heavy,true,speedup,[PLACEH
 | 敌预览图标 | 1（静态） | 64×64 | Atlas | 单格切片 |
 
 > 怪物动作与受击特效见 S23；Boss 专属演出 F40 暂不做。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| wave_config | json | `wave_config`（本系统 §3，逐波 + 全局波数参数） |
+| endless_config | json | `S32.endless_config`（无尽缩放/Boss 周期；权威见 balance/S32 `stg_endless_*`） |
+| enemy_proto | json | `enemy_config`（S31 §3，敌种唯一定义源） |
+| diff_mult | float | `stage_config`（S14/S32，运营难度粗调） |
+| drop_wood params | — | 本系统 §3（产出→S03/S28） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| spawn_directive | object | 怪物生成指令（count/interval/armor_type/type→S5/S1） |
+| wood_drop_event | event | 怪死亡掉木（→S03 累加 session 木 / S28 飘字） |
+| wave_state | enum | PrepPhase / SpawnPhase / ClearCheck / Victory / Paused（endless：FailSettle） |
+| boss_warning | event | Boss 预警（→S7 全屏闪） |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S4 | S5 | `spawnWave(directive)` / `spawnEnemy(enemy)` | out | 生成怪物 |
+| S4 | S1 | `placeEnemyOnPath(enemy, path_points)` | out | 沿路径布怪 |
+| S4 | S6 | `onEnemyReachEnd(enemy)`（经 S1 回调） | out | 漏怪回调 |
+| S4 | S7 | `showPrepCountdown()` / `showBossWarning()` | out | HUD 准备期 / Boss 预警 |
+| S4 | S3 | `addWood(drop_wood_amount)` | out | 怪掉木（session） |
+| S4 | S8 | `onVictory()` / `onFailSettle()` | out | 胜/败结算 |
+| S4 | S32 | `getEndlessConfig()` | in | 无尽缩放 / Boss 周期 |
+| S4 | S31 | `getEnemyProto(enemy_id)` | in | 敌种原型 |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | S21 远程波表拉取失败 | 用本地默认 10 波 | S21 |
+| E02 | 切后台 onHide(S20) | 生成计时挂起，恢复续发 | S20 |
+| E03 | `wave_config` 损坏(S18) | 内置默认 10 波 + 记 S25 | S18/S25 |
+| E04 | `count` 极大 | 同屏上限 ≤60 分批 | S24 |
+| E05 | `spawn_interval`=0 | 整波同出，受同屏上限钳 | S24 |
+| E06 | `prep_time`=0 | 直接出怪 | S24 |
+| E07 | 怪物 `hp`≤0 | 钳制最小 1 | S24 |
+| E08 | 波表越界/缺失 | 内置默认 10 波 | S3/S25 |
+| E09 | Boss 配置缺失 | 跳过 Boss，普通波收尾 | S8 |
+| E10 | 类型波重叠(空/地/Boss) | 分轨（空军上层 z / Boss 优先） | S1/S5 |
+| E11 | 无尽生成失败(endless_config 缺失/非法) | 回退 e_light_01 × base count + 记 S25 | S25 |
+| E12 | 无尽敌 id 非法 | 替换 e_light_01 | S31/S25 |
+| E13 | 无尽公式 NaN(k_hp/k_speed) | 钳制默认(0.05/0.02)，缩放≥1.0 | S24 |
+| E14 | 无尽波数溢出(>max_wave_cap) | 达 cap 强制结束（按 S8 失败口径） | S8/S25 |
+
+### 5.5 状态转换表
+
+| state | event | transition | action |
+|---|---|---|---|
+| PrepPhase | 下一波是 Boss | → BossWarning | 触发预警 |
+| PrepPhase | 倒计时结束(普通波) | → SpawnPhase | 出怪 |
+| BossWarning | 2s 预警后 | → SpawnPhase | 出怪 |
+| SpawnPhase | 本波生成完毕 | → ClearCheck | 清完判定 |
+| ClearCheck | 清完 且 非末波 | → PrepPhase | 下一波准备 |
+| ClearCheck | 清完 且 末波 | → Victory | 胜利结算(S8) |
+| SpawnPhase | onHide(S20) | → Paused | 暂停 |
+| Paused | onShow(S20) | → SpawnPhase | 恢复 |
+| PrepPhase / ClearCheck | Lives=0（endless 仅此退出） | → FailSettle | 失败结算(S8) |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| wave_count / wave_spawn_interval / wave_base_hp / wave_prep_time / wave_reward_mult / wave_drop_wood_chance / wave_drop_wood_amount / wave_spawn_loops | balance/S04_wave.json |
+| wave_total_waves / wave_boss_every | balance/S04_wave.json |
+| endless_hp_k / endless_speed_k / endless_boss_n | balance/S04_wave.json（权威镜像，真值在 S32 `stg_endless_*`） |
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| 毒甲重分类(N3) | `armor_type` 枚举已无 `poison`，统一为 `air`；`e_poison_01` 现取 `air` 甲（原毒甲肉盾），`combat_armor_poison` 已弃用；§2.5 进度链「轻→重→空→魔免→air」 | `e_poison_01` 是否并入 `e_air_01` 或保留为独立 air 甲敌种；air 甲具体克制系数归属 S30/S05 | S04（待 S30 确认 air 甲语义） |
+| 无尽缩放镜像 | `endless_hp_k/speed_k/boss_n` 为本系统生成侧镜像引用，权威在 S32 `stg_endless_*` | 镜像值保持与 S32 同步（单一事实源 = S32） | S32 |
+
+> 其余字段无跨系统冲突；数值初值全部锁定于 `balance/S04_wave.json`（10 个 wave_* + 3 个 endless_* 镜像），无 `NEEDS-DESIGN`（本 A 域范围）。

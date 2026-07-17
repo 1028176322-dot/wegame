@@ -1,0 +1,6 @@
+{
+  "start_lives": 20.0,
+  "normal_leak_cost": 1.0,
+  "boss_leak_cost": 5.0,
+  "meta_lives_bonus": 0.0
+}

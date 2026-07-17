@@ -1,0 +1,11 @@
+{
+  "score_per_wave": 10.0,
+  "score_win": 50.0,
+  "score_max_per_day": 200.0,
+  "tier1_score_need": 200.0,
+  "tier1_reward": 50.0,
+  "tier5_score_need": 1000.0,
+  "tier5_reward": 200.0,
+  "tier8_score_need": 2000.0,
+  "tier8_reward": 500.0
+}

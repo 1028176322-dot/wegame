@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "armor_type_def",
+  "type": "object",
+  "properties": {
+    "air_reduce": {
+      "type": "number"
+    },
+    "heavy_reduce": {
+      "type": "number"
+    },
+    "light_reduce": {
+      "type": "number"
+    },
+    "magic_immune_reduce": {
+      "type": "number"
+    },
+    "none_reduce": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

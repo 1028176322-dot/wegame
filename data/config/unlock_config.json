@@ -1,0 +1,13 @@
+{
+  "magic_required_level": 3.0,
+  "poison_required_level": 6.0,
+  "electric_required_level": 10.0,
+  "gold_required_level": 2.0,
+  "lives_required_level": 4.0,
+  "wood_required_level": 8.0,
+  "leaderboard_required_level": 12.0,
+  "levels_required_level": 5.0,
+  "gold_effect_value": 20.0,
+  "lives_effect_value": 2.0,
+  "wood_effect_value": 20.0
+}

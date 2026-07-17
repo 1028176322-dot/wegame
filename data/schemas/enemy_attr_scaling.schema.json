@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "enemy_attr_scaling",
+  "type": "object",
+  "properties": {
+    "hp_level_scalar_lv1": {
+      "type": "number"
+    },
+    "hp_wave_scalar": {
+      "type": "number"
+    },
+    "speed_level_scalar_lv1": {
+      "type": "number"
+    },
+    "speed_wave_scalar": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

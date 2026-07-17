@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "onboarding_config",
+  "type": "object",
+  "properties": {
+    "lives_lock": {
+      "type": "number"
+    },
+    "mask_alpha": {
+      "type": "number"
+    },
+    "tutorial_wave_count": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

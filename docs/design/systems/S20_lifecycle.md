@@ -1,13 +1,19 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S20 生命周期系统 (Lifecycle System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：MVP / P1 · 关联 F 码：F31 · 关联：SYSTEM_BREAKDOWN §S20 · GDD §8（适配）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：3 组件 + 模块表 4 行 + 4 异常）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：MVP / P1
+- 关联 F 码：F31
+- 关联系统：S4/S5/S6（战斗/波次/计时挂起）、S18（onHide 存档）、S23（BGM 暂停/续）、S7（手动暂停键）、S26（暂停中广告）、S21（远程配置重拉）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：`wx.onHide` / `wx.onShow`；S18 写锁（并发存档）
+- NEEDS-DESIGN 索引：无（本系统纯逻辑/配置，无 balance 调优杆；`max_resume_lock_ms` 等属 config 层默认，见 §5.6）
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
@@ -188,3 +194,74 @@ sequenceDiagram
 | （图标可选） | UI | 1 | 48×48 | PNG-8 | 单帧 | 暂停图标(可选) |
 
 > 复用通用弹窗风格；无音频（暂停时静音由 S23 处理）。按钮/遮罩切片遵循微信单图 ≤128KB、合图集原则（见 S19 F34）。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| resume_confirm | bool | `lifecycle_config.resume_confirm` |
+| auto_pause_on_hide | bool | `lifecycle_config.auto_pause_on_hide` |
+| max_resume_lock_ms | int | `lifecycle_config.max_resume_lock_ms`（config 默认 300） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| pause_state | enum | Active / PausedHide / PausedManual |
+| resume_gate | bool | 是否弹 z=70 确认层 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| wx | S20 | `onHide` / `onShow` | in | 生命周期事件 |
+| S20 | Combat(S4/S5/S6) | `broadcastPause` / `broadcastResume` | out | 全局挂起/续跑 |
+| S20 | S18 | `save(最新)` | out | 切后台存档 |
+| S20 | S23 | `pauseBGM` / `resumeBGM` | out | 音频暂停/续 |
+| S7 | S20 | 暂停键 | in | 手动暂停 |
+| S26 | S20 | 广告态优先 | in | 暂停中广告回调 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | onShow 正在结算 | 不弹暂停层，直续结算 | S8 |
+| E2 | 暂停中再 onHide | 幂等保持 | — |
+| E3 | 恢复竞态 | 加锁仅一次恢复 | — |
+| E4 | 存失败 | 不阻切后台，补存队列 | S18 |
+| E5 | onHide 广告 | 广告态优先，恢复补处理 | S26 |
+| E6 | 资源未就绪 | 等加载完再恢复 | S19 |
+| E7 | 多次 onShow | 仅首次有效 | — |
+| E8 | 暂停时长极值 | 校准时间不补偿 | — |
+| E9 | 网络变化 | 远程配置按需重拉 | S21 |
+| E10 | 音频焦点丢失 | S23 处理静音 | S23 |
+| E11 | 退出中再 onHide | 退出锁，视为已退出 | S10 |
+| E12 | 存档键冲突 | 复用 S18 写锁串行 | S18 |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Active | 进入对局 | [*] → Active | — |
+| Active | `wx.onHide` | → PausedHide | 广播暂停 |
+| Active | S7 暂停键 | → PausedManual | — |
+| PausedHide | 广播暂停后 | → Saving | 存最新 |
+| Saving | 存完成 | → Hidden | — |
+| Hidden | `wx.onShow` | → ResumeGate | — |
+| PausedManual | S7 再点/继续键 | → ResumeGate | — |
+| ResumeGate | `resume_confirm=true` | → ConfirmUI | 弹 z=70 |
+| ResumeGate | `resume_confirm=false` | → Active | 直续 |
+| ConfirmUI | 点"继续" | → Active | 广播恢复 |
+| ConfirmUI | 点"退出大厅" | → Lobby | 存→回大厅 |
+| Active | 对局结束 | → [*] | — |
+| Lobby | — | → [*] | — |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯逻辑/配置：`lifecycle_config` 行为开关与 `max_resume_lock_ms` 竞态锁时长（config 默认 300ms）均属 config 层（非 balance），由 `config/lifecycle_config.json` 持有。
+
+## 6. 冲突与待裁定
+
+### 6.1 已裁定设计规则（非待裁定）
+- 存档键并发（onHide 存 vs S8 结算存同帧）：复用 S18 单写锁（Promise 队列）串行化，无相互覆盖（见 §2.4 E12）。current_implementation 与 pending_decision 一致，无需 DO 裁定。
+
+### 6.2 冲突汇总
+本系统无 DO 待裁定冲突项。

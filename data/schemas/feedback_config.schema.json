@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "feedback_config",
+  "type": "object",
+  "properties": {
+    "max_len": {
+      "type": "number"
+    },
+    "pending_max": {
+      "type": "number"
+    },
+    "screenshot_max_kb": {
+      "type": "number"
+    },
+    "screenshot_size": {
+      "type": "number"
+    },
+    "submit_cooldown": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,11 @@
+{
+  "flag_monetize": false,
+  "flag_season": false,
+  "show_reload_toast": false,
+  "exchange_rate": 1.0,
+  "wave_diff_mult": 1.0,
+  "drop_mult": 1.0,
+  "gold_per_wave_base": 100.0,
+  "fetch_interval": 300.0,
+  "inflation_threshold": 1.5
+}

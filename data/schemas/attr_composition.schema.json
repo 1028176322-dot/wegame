@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "attr_composition",
+  "type": "object",
+  "properties": {
+    "buff_mod_default": {
+      "type": "number"
+    },
+    "growth_base": {
+      "type": "number"
+    },
+    "lvl_atkspd_mult_lv1": {
+      "type": "number"
+    },
+    "lvl_atkspd_mult_lv20": {
+      "type": "number"
+    },
+    "lvl_dmg_mult_lv1": {
+      "type": "number"
+    },
+    "lvl_dmg_mult_lv20": {
+      "type": "number"
+    },
+    "lvl_range_mult_lv1": {
+      "type": "number"
+    },
+    "lvl_range_mult_lv20": {
+      "type": "number"
+    },
+    "skill_mod_default": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

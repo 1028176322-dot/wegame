@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "settlement_config",
+  "type": "object",
+  "properties": {
+    "leak_penalty": {
+      "type": "number"
+    },
+    "new_record_bonus": {
+      "type": "number"
+    },
+    "per_wave_gold": {
+      "type": "number"
+    },
+    "per_wave_xp": {
+      "type": "number"
+    },
+    "win_base_gold": {
+      "type": "number"
+    },
+    "win_base_wood": {
+      "type": "number"
+    },
+    "xp_base": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

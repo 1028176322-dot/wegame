@@ -1,11 +1,23 @@
 # 系统策划案：S13 排行榜系统 (Leaderboard System)
 
 > 归属域：B 元进度社交域 · 层级/优先级：增强 / P2 · 关联 F 码：F15 · 关联：SYSTEM_BREAKDOWN §S13
-> 状态：v0.2-detailed · 日期 2026-07-17
+> 状态：v0.3-ai-readable · 日期 2026-07-17
 > 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
 > 数值约定：凡涉及权重/门槛/刷新频率的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
 > 合规边界：不做实时榜（异步为主）；不做付费冲榜（见 SYSTEM_BREAKDOWN §S13）。
 > **本地兜底铁律**：S42 云存档本期「暂不做」，故排行榜**必须本地优先**——无网络/无登录/拉取超时均降级为本地榜，绝不阻塞玩家。
+
+---
+
+## 0. 元数据头
+
+- 归属域：B 元进度社交域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F15
+- 关联文档：SYSTEM_BREAKDOWN §S13
+- 依赖系统：S8（结算成绩）、S18（本地榜存档）、S24（防作弊校验）、S10（被超红点）、S20（生命周期）、S25（告警）、S42（云存档，暂不做）
+- 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- NEEDS-DESIGN 索引：无（本系统所有 `[PLACEHOLDER]` 已在 balance/S13_leaderboard.json 给初值）
 
 ---
 
@@ -28,7 +40,7 @@
 
 ```
   0       150      300      450      600      750
-  ┌──────────────────────────────────────────────┐ y=0
+  ┌──────────────────────────────────────┐ y=0
   │ (20,40)⟲返回     最佳波数榜      (655,40)↻刷新  │ y=40  Back/Refresh 64×64
   │ ┌──────────────────────────────────────┐      │ y=120 DimensionBar 750×60
   │ │ [最佳波数]  (预留:最高塔)              │      │
@@ -46,7 +58,7 @@
   │  ┌──────────────────────────────────────┐     │ y=1180 MyRank 750×80
   │  │ 我的名次: 4  | 42波 | 距上一名 +3波    │     │
   │  └──────────────────────────────────────┘     │ y=1260
-  └──────────────────────────────────────────────┘ y=1334
+  └──────────────────────────────────────┘ y=1334
 ```
 
 ### 1.3 组件表（精确坐标 / 尺寸 / 层级 / 响应）
@@ -148,7 +160,7 @@ sequenceDiagram
 | E01 | 切后台 S20 | 排行页 `onHide` | 不强制重拉；保留已渲染榜；`onShow` 不重拉（防跳变） | 状态一致 | S20 |
 | E02 | 数据损坏 S18 | 本地榜数据损坏 | 重置本地榜（仅保留自己最优成绩）→ 重建 | 不崩，可重拉 | S18 |
 | E03 | 网络中断 | 无网拉榜 | 用本地缓存榜，标「未同步」 | 可看本地榜 | — |
-| E04 | **排行榜拉取超时** | 远端响应 > `fetch_timeout` `[PLACEHOLDER]` | 超时回落本地榜，标「未同步」，不阻塞 UI | 降级本地 | — |
+| E04 | **排行榜拉取超时** | 远端响应 > value_ref: balance/S13_leaderboard.json#ldb_fetch_timeout | 超时回落本地榜，标「未同步」，不阻塞 UI | 降级本地 | — |
 | E05 | **微信登录失败 S42** | `wx.login` 失败 / 无 openid | 本期不做云存；好友榜降级本地榜；不阻塞 | 纯本地兜底 | S42(暂不做) |
 | E06 | 成绩异常(作弊 S24) | 成绩跳变/超阈值 | 拒上报，标记；不进榜 | 护榜公平 | S24 |
 | E07 | 同名次 | 多玩家同分 | 先到先排（时间戳）；同分同戳按 openid 字典序 | 稳定排序 | — |
@@ -174,7 +186,7 @@ sequenceDiagram
 | cycle | enum | daily/weekly/none | none | 周期（首版无，增强） |
 | top_n | int | 10–100 | 50 | 展示前 N |
 | min_score | int | 0 | 1 | 上榜门槛 |
-| fetch_timeout | float | 1–10 | `[PLACEHOLDER]` 5 | 拉取超时(s)，调优杆 |
+| fetch_timeout | float | 1–10 | value_ref: balance/S13_leaderboard.json#ldb_fetch_timeout | 拉取超时(s)，调优杆 |
 | sort_order | enum | desc/asc | desc | 排序方向 |
 | tie_breaker | enum | timestamp/openid | timestamp | 同名次裁决 |
 | only_increase | bool | true | true | 只升不降（防回退） |
@@ -182,7 +194,7 @@ sequenceDiagram
 **示例（CSV）**
 ```csv
 board_id,dimension,scope,cycle,top_n,min_score,fetch_timeout,sort_order,tie_breaker,only_increase
-best_wave,best_wave,friend,none,50,1,[P]5,desc,timestamp,true
+best_wave,best_wave,friend,none,50,1,value_ref: balance/S13_leaderboard.json#ldb_fetch_timeout,desc,timestamp,true
 ```
 
 ### 3.2 表 `leaderboard_local_entry`（本地榜条目，持久化 S18）
@@ -217,3 +229,87 @@ local_me,我,42,2026-07-17T12:00:00,true
 | `avatar_default` 默认头像 | 头像 | 静态 | 96×96 | PNG（含透明） | 单图；微信头像走 `wx` API（合规） |
 
 > 头像优先用微信头像（合规，S42 暂不做时本地默认头像兜底）；特效见 S23。资源走首分包（S19）。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构（字段 / 类型 / 来源 config 字段）
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| leaderboard_config | json | §3.1 leaderboard_config（board_id / dimension / scope / cycle / top_n / min_score / fetch_timeout / sort_order / tie_breaker / only_increase） |
+| leaderboard_local_entry[] | json | §3.2 leaderboard_local_entry（openid / nickname / score / score_at / avatar_local） |
+| save.best_score | int | S18 存档（本地最优成绩） |
+| report_score | int | S8 结算产出（最佳波数） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| ranked_list[] | json | 排序后榜单（本地/合并远端） |
+| my_rank | int | 我的名次 |
+| my_score | int | 我的成绩 |
+| overtaken_reddot | bool | 名次下降通知 S10 红点 |
+
+### 5.3 跨系统接口调用表（caller / callee / function / 方向 / 用途）
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S8 | S13 | reportScore(best_wave) | in | 结算产出成绩 |
+| S13 | S24 | validateScore(score) | out | 校验合法性（防作弊） |
+| S13 | S18 | loadLocalBoard() | in | 读本地榜 |
+| S13 | S18 | saveLocalBest(score) | out | 写本地最优（只升不降） |
+| S13 | S10 | notifyOvertakenReddot() | out | 名次下降红点 |
+| S13 | S25 | reportCheat(score) | out | E06 疑似作弊上报 |
+
+### 5.4 错误码表（E# / 场景 / 兜底 / 涉及系统）
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 S20 | 不强制重拉，onShow 不跳变 | S20 |
+| E02 | 数据损坏 S18 | 重置本地榜保留自己最优 | S18 |
+| E03 | 网络中断 | 本地缓存榜 + 标未同步 | — |
+| E04 | 拉取超时 | 回落本地榜 value_ref ldb_fetch_timeout | — |
+| E05 | 微信登录失败 S42 | 纯本地兜底（云存暂不做） | S42 |
+| E06 | 成绩异常 S24 | 拒上报标记，不进榜 | S24 |
+| E07 | 同名次 | 时间戳/ openid 稳定排序 | — |
+| E08 | 未上榜 | 显未上榜 + 距门槛差 | — |
+| E09 | 数值极值 | 成绩钳 [0,max_wave]；溢出显未上榜 | — |
+| E10 | 配置缺失 | 默认 best_wave 好友榜 top_n=50 | S25 |
+| E11 | 并发上报 | 队列串行 + 只升不降 | — |
+| E12 | 远端/本地冲突 | 取更高者（只升不降）+ S24 校验 | S24 |
+
+### 5.5 状态转换表（state / event / transition / action）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Open | 进入 | → LoadLocal | 读本地榜 S18 |
+| LoadLocal | 读档完成 | → TryRemote | 有网 & 登录? |
+| TryRemote | 是 | → Fetch | 拉远端 |
+| Fetch | 成功 | → Merge | — |
+| Fetch | 超时/失败 | → UseLocal | 标未同步 |
+| Merge | 合并完成 | → Render | 合并排序 |
+| UseLocal | 本地读取 | → Render | 标未同步 |
+| Render | 渲染完成 | → Idle | — |
+| Idle | 下拉刷新 | → Refresh | — |
+| Refresh | 触发 | → TryRemote | — |
+| Idle | onHide S20 | → Background | — |
+| Background | onShow S20 | → Idle | 不强制重拉 |
+
+### 5.6 数值消费清单（本系统消费的所有 balance param_id + 来源文件）
+
+| param_id | 来源 balance 文件 | 用途 |
+|---|---|---|
+| ldb_fetch_timeout | balance/S13_leaderboard.json | 远端榜单拉取超时（§2.4 E04 / §3.1 fetch_timeout） |
+
+> 本系统 §3 其余字段（top_n=50 / min_score=1 / sort_order=desc / tie_breaker=timestamp / only_increase=true / scope=friend / cycle=none）均为固定设计常量，无 `[PLACEHOLDER]` 调优量，故 §5.6 仅列上表 1 项。
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| C-S13-1 | **本地兜底铁律**：S42 云存档本期暂不做，排行榜纯本地优先；无网/无登录/拉取超时（>value_ref ldb_fetch_timeout）均降级本地榜，绝不阻塞 | 待 S42 云存档实装后，是否接入云端好友/全服榜（合并排序、远端优先 + 本地兜底）；建议保留「本地优先 + 超时降级」铁律不变 | S13 |
+| C-S13-2 | `only_increase=true` 防远端成绩回退；远端 < 本地以更高者为准 | 是否对「赛季榜(S17)」复用同一条只升不降规则（S17 §2.1 积分贡献 → S13 赛季榜）——建议复用，避免跨系统规则漂移 | S13 / S17 |

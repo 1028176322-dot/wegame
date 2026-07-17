@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "checkin_reward_detail",
+  "type": "object",
+  "properties": {
+    "day1_reward": {
+      "type": "number"
+    },
+    "day2_reward": {
+      "type": "number"
+    },
+    "day3_reward": {
+      "type": "number"
+    },
+    "day4_reward": {
+      "type": "number"
+    },
+    "day5_reward": {
+      "type": "number"
+    },
+    "day6_reward": {
+      "type": "number"
+    },
+    "day7_reward": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

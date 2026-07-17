@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "damage_armor_matrix",
+  "type": "object",
+  "properties": {
+    "control_air": {
+      "type": "number"
+    },
+    "control_heavy": {
+      "type": "number"
+    },
+    "control_light": {
+      "type": "number"
+    },
+    "control_magic_immune": {
+      "type": "number"
+    },
+    "control_none": {
+      "type": "number"
+    },
+    "magic_air": {
+      "type": "number"
+    },
+    "magic_heavy": {
+      "type": "number"
+    },
+    "magic_light": {
+      "type": "number"
+    },
+    "magic_magic_immune": {
+      "type": "number"
+    },
+    "magic_none": {
+      "type": "number"
+    },
+    "physical_air": {
+      "type": "number"
+    },
+    "physical_heavy": {
+      "type": "number"
+    },
+    "physical_light": {
+      "type": "number"
+    },
+    "physical_magic_immune": {
+      "type": "number"
+    },
+    "physical_none": {
+      "type": "number"
+    },
+    "poison_air": {
+      "type": "number"
+    },
+    "poison_heavy": {
+      "type": "number"
+    },
+    "poison_light": {
+      "type": "number"
+    },
+    "poison_magic_immune": {
+      "type": "number"
+    },
+    "poison_none": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -26,7 +26,6 @@
 | combat_armor_light | combat_config | 0.1 | - | 0 | 0.9 | 无 | 减伤% | 轻甲减伤 10% |
 | combat_armor_heavy | combat_config | 0.3 | - | 0 | 0.9 | 无 | 减伤% | 重甲减伤 30%（需炮/毒破） |
 | combat_armor_magic_immune | combat_config | 0.0 | - | 0 | 0.0 | 无 | 减伤% | 魔免基础减伤 0%（魔免=免疫魔法×0，对物理塔无减免、反被克制；本行对应非魔法伤害兜底为0） |
-| combat_armor_poison | combat_config | 0.2 | - | 0 | 0.9 | 无 | 减伤% | 毒甲减伤 20% |
 | combat_projectile_speed | combat_config | 600 | - | 100 | 2000 | 无 | px/s | 弹速，初值 600 手感顺滑；钳制下限防弹道不达 |
 | combat_splash_radius | combat_config | 80 | - | 0 | 200 | 无 | px | 炮溅射半径，初值 80 覆盖小群；钳制上限防 solo 全图 |
 | combat_slow_factor | combat_config | 0.5 | - | 0.3 | 0.9 | 无 | 倍 | 冰减速比例（怪物速度 ×0.5），保命强度 |
@@ -42,7 +41,7 @@
 
 ## 备注 / 待裁定
 - 本系统所有 [PLACEHOLDER] 均已给初值，无 NEEDS-DESIGN。
-- `counter_matrix` / `armor_reduce` 原在 doc 中为单个 JSON [PLACEHOLDER]，本表已拆为逐键/逐甲的具体初值（counter 6 项含已给定的 ice_vs_none=1.0；armor 5 项对应 S04 armor_type 枚举 none/light/heavy/magic_immune/poison），便于独立调参与钳制。
+- `counter_matrix` / `armor_reduce` 原在 doc 中为单个 JSON [PLACEHOLDER]，本表已拆为逐键/逐甲的具体初值（counter 6 项含已给定的 ice_vs_none=1.0；armor 4 项对应 S04 armor_type 枚举 none/light/heavy/magic_immune/air；**原 `combat_armor_poison` 已按 N3 弃用删除**，poison 甲并入 air 甲），便于独立调参与钳制。
 - **S29 等级加成消费**：本系统不持有等级加成参数——塔有效属性（dmg/range/atk_speed）已**在建塔时(S02)套用 S29 单行加成**，本系统仅按 `damage_formula = base×level_bonus×growth^养塔级×counter − armor` 消费该已修正属性（level_bonus 不累加）。故本表 level_link 全为“无”。
 - 状态叠加默认 `status_stack_rule=refresh`（同类型刷新不叠层），已在 doc §3 给定，非 placeholder。
 - `combat_splash_radius`/`combat_chain_count` 上限钳制呼应 doc §2.4 性能/防 solo 警告。

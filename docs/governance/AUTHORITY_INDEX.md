@@ -9,7 +9,7 @@
 | ai-governance | `docs/governance/通用AI项目管理方案.md` | 本索引、各治理规则 | — | current | Decision Owner | 2026-07-17 | 方法论章节或模板变化 |
 | product-design | `docs/design/GDD.md` | 本索引、ADR-0002 | — | current | Decision Owner | 2026-07-17 | 玩法大改/平台合规变化 |
 | tech-architecture | `docs/governance/TECH_ARCHITECTURE.md` | 方案 §14 | — | current | Decision Owner | 2026-07-17 | 引擎升级/首个工程任务 |
-| data-config | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引入配置/存档结构 |
+| data-config | `data/README.md` | `docs/design/SPEC_STANDARD.md` | — | current | Decision Owner | 2026-07-17 | 引入配置/存档结构 |
 | ux-content-assets | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引入美术/音频/文案资产 |
 | gameplay-systems | `docs/design/GDD.md` | 本索引、ADR-0002 | — | current | Decision Owner | 2026-07-17 | 塔种调整/核心机制变更 |
 | system-design | `docs/design/SYSTEM_BREAKDOWN.md` | GDD/FEATURE_SCOPE/GAME_FLOW/`docs/design/systems/` | — | current | Decision Owner | 2026-07-17 | 新系统增删/系统边界变更/塔种扩展 |
@@ -29,5 +29,6 @@
 | `docs/design/SYSTEM_BREAKDOWN.md` | `c19299c1acfe8db4c8a2694467e8289470b5db35d614e54de2e12f9504f4827c` |
 | `docs/design/FEATURE_SCOPE.md` | `5f226cbd819383944657ac7f551003eb2fac495c11216e31107236e4b8d368ef` |
 | `docs/design/GAME_FLOW.md` | `d185e92b442447fa0c24d121cf254475428fa36ac66b36833a0c20f03869ca34` |
+| `data/README.md` | `b8056e0d27bd451c6cbde5287b8e56bc4c57ccf4802f2bb89bf54803db2946d8` |
 
-> 注：tech-architecture、platform-release、product-design、gameplay-systems、system-design 均已由 Decision Owner 裁定 current 入口（2026-07-17；D-01 玩法=塔防，参考《绿色循环圈》，见 ADR-0002 与 `docs/design/`；system-design 覆盖 GDD/SYSTEM_BREAKDOWN/FEATURE_SCOPE/GAME_FLOW/systems/ 共 29 系统 + 4 顶层文档，v0.2-detailed）。剩余 `unassessed`：data-config、ux-content-assets、test-quality，须在对应首个工程/决策任务中裁定。
+> 注：tech-architecture、platform-release、product-design、gameplay-systems、system-design、data-config 均已由 Decision Owner 裁定 current 入口（2026-07-17；D-01 玩法=塔防见 ADR-0002；data-config 双轨制数值真相源见 ADR-0003 与 `data/README.md` + `docs/design/SPEC_STANDARD.md`）。剩余 `unassessed`：ux-content-assets、test-quality，须在对应首个工程/决策任务中裁定。

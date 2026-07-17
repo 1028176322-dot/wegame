@@ -1,0 +1,11 @@
+{
+  "top_bar_h": 70.0,
+  "min_touch": 96.0,
+  "safe_margin": 20.0,
+  "design_width": 750.0,
+  "design_height": 1334.0,
+  "speed_2x_free": true,
+  "show_lives_in_top": true,
+  "pause_confirm": false,
+  "vibrate_on_leak": true
+}

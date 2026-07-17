@@ -1,0 +1,8 @@
+{
+  "dmg_min": 0.0,
+  "range_min": 0.0,
+  "atk_speed_min": 0.1,
+  "projectile_speed_min": 50.0,
+  "hp_min": 1.0,
+  "move_speed_min": 20.0
+}

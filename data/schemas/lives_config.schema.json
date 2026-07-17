@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "lives_config",
+  "type": "object",
+  "properties": {
+    "boss_leak_cost": {
+      "type": "number"
+    },
+    "meta_lives_bonus": {
+      "type": "number"
+    },
+    "normal_leak_cost": {
+      "type": "number"
+    },
+    "start_lives": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

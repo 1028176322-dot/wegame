@@ -1,0 +1,6 @@
+{
+  "bgm_volume": 0.6,
+  "sfx_volume": 0.8,
+  "max_sfx_concurrent": 16.0,
+  "shake_intensity": 0.5
+}

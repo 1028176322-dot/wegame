@@ -1,10 +1,17 @@
 # 系统策划案：S17 赛季系统 (Season System)
 
-> 归属域：B 元进度社交域 · 层级/优先级：探索 / P3 · 关联 F 码：F21 · 关联：SYSTEM_BREAKDOWN §S17
-> 状态：v0.2-detailed · 日期 2026-07-17
-> 设计基准：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
-> 数值约定：凡涉及周期长度/主题奖励/积分规则/上榜门槛的调优量为 `[PLACEHOLDER]`，标注「调优杆」，禁止硬编码魔法数字。
-> 边界 / 门控：依赖 F13–F15（S11/S13/S15）稳定后才做（见 SYSTEM_BREAKDOWN §S17）；不做付费赛季通行证（合规后议）。**本期若 S13/S11 未实装，本系统入口隐藏。**
+## 0. 元数据头
+
+- **归属域**：B 元进度社交域
+- **层级/优先级**：探索 / P3
+- **关联 F 码**：F21
+- **关联文档**：SYSTEM_BREAKDOWN §S17；GDD：—（未列）
+- **版本/状态**：v0.2-detailed · 2026-07-17
+- **设计基准**：UI 750×1334（Cocos Creator 3.8.8 · 微信小游戏）· 安全区：顶部 y<88、底部 y>1290 不放置可点组件
+- **依赖系统**：S08（结算积分源）/ S11（奖励发放 · meta_res）/ S13（赛季榜复用）/ S15（成就入账源）/ S18（存档）/ S10（倒计时红点）
+- **门控 / 边界**：依赖 F13–F15（S11/S13/S15）稳定后才实装；本期 `enabled=false`，若依赖未达则入口隐藏（see §6 C-S17-1）。不做付费赛季通行证（合规后议）。
+- **数值约定**：凡涉及周期长度 / 主题奖励 / 积分规则 / 上榜门槛的调优量已全部指针化（`value_ref`，见 §3.1 JSON 与 §5.6）；终值见 `balance/S17_season.json`。禁裸 `[PLACEHOLDER]`。
+- **NEEDS-DESIGN 索引**：无（本系统所有 `[PLACEHOLDER]` 已在 `balance/S17_season.json` 给初值；见 §5.6）。
 
 ---
 
@@ -143,7 +150,7 @@ sequenceDiagram
 | E06 | 切换竞态 | 周期临界多触发切换 | 切换加锁，单切换（原子） | 防双归档 | — |
 | E07 | 微信登录失败 S42 | `wx.login` 失败 | 赛季纯本地（积分本地），好友榜降级本地 | 零阻塞 | S42(暂不做) |
 | E08 | 网络中断 | — | 赛季积分纯本地；榜复用 S13 本地兜底 | 不适用/N/A | S13 |
-| E09 | 数值极值 | 积分极大值 / 段位溢出 | 积分上限 `[PLACEHOLDER]` 钳制；段位越界取末档 | 不卡死 | — |
+| E09 | 数值极值 | 积分极大值 / 段位溢出 | 积分上限 `value_ref: balance/S17_season.json#season_score_cap` 钳制；段位越界取末档 | 不卡死 | — |
 | E10 | 赛季未开始/已结束 | 当前无活跃赛季 | 入口隐藏 或 显「下赛季预告」 | 不报错 | — |
 | E11 | 并发领奖 | 连点奖励卡 | `isClaiming` 锁 0.3s，幂等防双领 | 仅一次发奖 | — |
 | E12 | 倒计时边界 | 跨年/时区 | 用本地时间计算；末 3 天红点(S10) | 提醒正确 | S10 |
@@ -155,6 +162,8 @@ sequenceDiagram
 
 ## 3. 配置表设计（完整字段 + 多行示例）
 
+> 数值全部指针化：JSON 示例内 `[PLACEHOLDER]` 改为 `value_ref: balance/S17_season.json#<param_id>`；字段表 `默认值` 列同步指向。终值见 `balance/S17_season.json`。
+
 ### 3.1 表 `season_config`（赛季配置）
 
 | 字段 | 类型 | 取值/范围 | 默认值 | 说明 |
@@ -163,12 +172,12 @@ sequenceDiagram
 | name | string | ≤10 字 | — | 主题名 |
 | start_time | datetime | — | — | 开始（本地时间） |
 | end_time | datetime | — | — | 结束 |
-| score_rule | json | 积分规则 | — | 成绩→积分（调优杆） |
-| reward_track | json | 段位奖励 | — | 奖励表（调优杆） |
+| score_rule | json | 积分规则 | value_ref: balance/S17_season.json#season_score_per_wave / _win / _max_per_day | 成绩→积分（指针化，见 JSON 示例） |
+| reward_track | json | 段位奖励 | value_ref: balance/S17_season.json#season_tier1/5/8_score_need / _reward | 奖励表（指针化，见 JSON 示例） |
 | board_id | string | 关联 S13 | "season_best" | 赛季榜 |
 | theme_asset | string | 主题资源 id | "season_s01" | 横幅/专属资源 |
 | remind_days | int | 1–7 | 3 | 末 N 天红点 |
-| enabled | bool | false | false | 总开关（依门控） |
+| enabled | bool | false | false | 总开关（依门控，见 §6 C-S17-1） |
 
 **示例（JSON）**
 ```json
@@ -177,11 +186,15 @@ sequenceDiagram
   "name": "春日环防卫",
   "start_time": "2026-08-01T00:00:00",
   "end_time": "2026-08-28T23:59:59",
-  "score_rule": {"per_wave": [PLACEHOLDER], "win": [PLACEHOLDER], "max_per_day": [PLACEHOLDER]},
+  "score_rule": {
+    "per_wave": "value_ref: balance/S17_season.json#season_score_per_wave",
+    "win": "value_ref: balance/S17_season.json#season_score_win",
+    "max_per_day": "value_ref: balance/S17_season.json#season_score_max_per_day"
+  },
   "reward_track": [
-    {"tier": 1, "score_need": [PLACEHOLDER], "reward": [PLACEHOLDER]},
-    {"tier": 5, "score_need": [PLACEHOLDER], "reward": [PLACEHOLDER]},
-    {"tier": 8, "score_need": [PLACEHOLDER], "reward": [PLACEHOLDER]}
+    {"tier": 1, "score_need": "value_ref: balance/S17_season.json#season_tier1_score_need", "reward": "value_ref: balance/S17_season.json#season_tier1_reward"},
+    {"tier": 5, "score_need": "value_ref: balance/S17_season.json#season_tier5_score_need", "reward": "value_ref: balance/S17_season.json#season_tier5_reward"},
+    {"tier": 8, "score_need": "value_ref: balance/S17_season.json#season_tier8_score_need", "reward": "value_ref: balance/S17_season.json#season_tier8_reward"}
   ],
   "board_id": "season_best",
   "theme_asset": "season_s01",
@@ -195,7 +208,7 @@ sequenceDiagram
 | 字段 | 类型 | 取值/范围 | 默认值 | 说明 |
 |---|---|---|---|---|
 | season_id | string | 关联 | "s01" | 赛季主键 |
-| score | int | 0–max | 0 | 当前赛季积分 |
+| score | int | 0–max | 0 | 当前赛季积分（上限钳制见 `value_ref: balance/S17_season.json#season_score_cap`） |
 | claimed_tiers | json | 已领段位数组 | [] | 防重领 |
 | archived | bool | false | false | 是否已归档 |
 
@@ -220,3 +233,102 @@ s01,1200,[1,5],false
 | `countdown_dot` 倒计时红点 | 提示 | 静态 | 24×24 | PNG | 复用 S10 红点 |
 
 > 赛季依赖 S13/S11/S14 稳定后做；主题资源分包 S19。特效见 S23。
+
+---
+
+## 5. 实现契约（AI 可消费结构化索引）
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 | 说明 |
+|---|---|---|---|
+| run_result | struct | S08 结算 | 本局成绩 `{wave_count:int, is_win:bool}`，用于转积分 |
+| season_config | json | config/season_config.json | 赛季配置（score_rule / reward_track / board_id / enabled） |
+| player_season_progress | struct | S18 存档 | `{season_id, score, claimed_tiers[], archived}` |
+| redeem_request | struct | UI 点击 | `{tier:int}`，玩家点奖励卡 |
+| red_dot_cfg | int | season_config.remind_days | 末 N 天红点阈值（接 S10） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 去向 | 说明 |
+|---|---|---|---|
+| score_delta | int | S13 赛季榜 | 本局贡献积分增量 |
+| grant_request | struct | S11 元进度 | `{tier, reward:meta_res}`，段位奖励发放 |
+| season_progress_snapshot | struct | S18 存档 | 持久化积分 / 已领标记 |
+| ui_render_state | struct | UI | `{is_active, season_state, board_rows[], track_cards[].state, cdot_visible}` |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S08 | S17 | `addSeasonScore(runResult)` | in | 结算成绩转赛季积分并贡献 |
+| S17 | S13 | `submitSeasonBoard(boardId, score)` | out | 写赛季榜（复用 S13 状态机） |
+| S17 | S11 | `grantMetaReward(tier, reward)` | out | 段位奖励发放（meta_res，与签到/成就同源） |
+| S17 | S18 | `loadSeasonProgress(seasonId)` | in | 读积分 / 已领标记 |
+| S17 | S18 | `saveSeasonProgress(snapshot)` | out | 持久化积分 / 已领标记 |
+| S17 | S10 | `setRedDot(visible)` | out | 末 3 天倒计时红点提醒 |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及系统 |
+|---|---|---|---|
+| E01 | 切后台 onHide | 存查看态，onShow 续 | S20/S18 |
+| E02 | 存档损坏 | 重置积分（保留已领防重领） | S18 |
+| E03 | 配置缺失 | 隐藏入口，不报错 | — |
+| E04 | 积分异常(S24) | 拒计标记，不进榜 | S24 |
+| E05 | 领奖失败 | 回滚已领 → 告警 → 可重试 | S25 |
+| E06 | 切换竞态 | 切换加锁，单切换原子 | — |
+| E07 | 微信登录失败 | 纯本地，好友榜降级 | S42 |
+| E08 | 网络中断 | 纯本地 + S13 本地兜底 | S13 |
+| E09 | 数值极值 | `season_score_cap` 钳制；段位越界取末档 | — |
+| E10 | 无活跃赛季 | 入口隐藏 / 预告 | — |
+| E11 | 并发领奖 | `isClaiming` 锁 0.3s 幂等 | — |
+| E12 | 倒计时边界 | 本地时间；S10 红点 | S10 |
+
+### 5.5 状态转换表（从 §2.2 FSM 提取，AI 可消费）
+
+| state | event | transition | action |
+|---|---|---|---|
+| Boot | onBoot | CheckSeason | 读 season_config 起止 |
+| CheckSeason | 进行中 & 依赖就绪 | Active | 渲染横幅/榜/奖励轨 |
+| CheckSeason | 未开始\|已结束\|依赖未就绪 | Inactive | 隐藏入口 |
+| Active | S8 结算积分 | Contribute | 写 S13 赛季榜 |
+| Contribute | 写榜完成 | UpdateBoard | 更新榜 |
+| Active | 点领奖(达标) | Claim | 校验段位 |
+| Claim | 达标 | Grant | 发奖 S11 |
+| Grant | 成功 | Persist | 存 S18 + 标记已领 |
+| Active | 周期到 | Switch | 归档旧 + 开新 + 重置榜 |
+| Active | onHide | Background | 存查看态 |
+| Background | onShow | Active | 续 |
+| Inactive | — | [*] | 不报错 |
+
+### 5.6 数值消费清单（param_id + 来源文件）
+
+| param_id | module | unit | 来源文件 | 说明 |
+|---|---|---|---|---|
+| season_score_cap | (clamp) | 分 | balance/S17_season.json | 积分上限钳制（§2.4 E09） |
+| season_score_per_wave | season_config.score_rule | 分/波 | balance/S17_season.json | 每波得分 |
+| season_score_win | season_config.score_rule | 分/胜 | balance/S17_season.json | 通关额外分 |
+| season_score_max_per_day | season_config.score_rule | 分/天 | balance/S17_season.json | 每日获取上限 |
+| season_tier1_score_need | season_config.reward_track.T1 | 分 | balance/S17_season.json | T1 段位门槛 |
+| season_tier1_reward | season_config.reward_track.T1 | meta_res | balance/S17_season.json | T1 奖励 |
+| season_tier5_score_need | season_config.reward_track.T5 | 分 | balance/S17_season.json | T5 段位门槛 |
+| season_tier5_reward | season_config.reward_track.T5 | meta_res | balance/S17_season.json | T5 奖励 |
+| season_tier8_score_need | season_config.reward_track.T8 | 分 | balance/S17_season.json | T8 段位门槛 |
+| season_tier8_reward | season_config.reward_track.T8 | meta_res | balance/S17_season.json | T8 奖励 |
+
+> 共 10 个 param_id，全部已在 `balance/S17_season.json` 给初值，无 NEEDS-DESIGN。奖励币种接 S11 `meta_res`（与 S12/S15 同源，避免经济失衡）。
+
+---
+
+## 6. 冲突与待裁定（三要素格式）
+
+### C-S17-1 · 入口门控与 enabled 开关
+- **current_implementation**：依赖 S11/S13/S15 稳定；未达则入口隐藏，`season_config.enabled=false`（本期不暴露半成品）。
+- **pending_decision**：是否在 v1.0 解除门控启用本系统（需 DO 裁定依赖就绪判定标准与启用里程碑）。
+- **owner**：S17（待 DO 终审）
+
+### C-S17-2 · 奖励币种（meta_res 接入）
+- **current_implementation**：段位奖励走 S11 `meta_res`（与 S12 签到 / S15 成就同源，避免经济失衡）。
+- **pending_decision**：若 S11 `meta_res` 旧语义改用途（见 §6 C-S11-1），本系统奖励发放目标是否同步切换。
+- **owner**：S17 + S11（待 DO 终审）

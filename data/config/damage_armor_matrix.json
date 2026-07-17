@@ -1,0 +1,22 @@
+{
+  "physical_none": 1.0,
+  "physical_light": 1.5,
+  "physical_heavy": 1.5,
+  "physical_magic_immune": 1.5,
+  "physical_air": 0.5,
+  "magic_none": 1.0,
+  "magic_light": 1.0,
+  "magic_heavy": 1.0,
+  "magic_magic_immune": 0.0,
+  "magic_air": 0.5,
+  "poison_none": 1.0,
+  "poison_light": 1.0,
+  "poison_heavy": 1.5,
+  "poison_magic_immune": 1.0,
+  "poison_air": 0.5,
+  "control_none": 1.0,
+  "control_light": 1.0,
+  "control_heavy": 1.0,
+  "control_magic_immune": 1.0,
+  "control_air": 1.0
+}

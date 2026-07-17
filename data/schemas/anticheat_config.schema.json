@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "anticheat_config",
+  "type": "object",
+  "properties": {
+    "best_wave_jump_max": {
+      "type": "number"
+    },
+    "check_interval_ms": {
+      "type": "number"
+    },
+    "flag_rate_alert": {
+      "type": "number"
+    },
+    "gold_per_wave_max": {
+      "type": "number"
+    },
+    "score_jump_max": {
+      "type": "number"
+    },
+    "wood_per_wave_max": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

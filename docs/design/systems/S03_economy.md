@@ -1,6 +1,8 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S3 经济系统 (Economy System)
 
+## 0. 元数据头
+
 > 归属域：A 核心战斗域 · 层级/优先级：MVP / P0 · 关联 F 码：F5 · 关联：GDD §6；SYSTEM_BREAKDOWN §S3
 > 状态：v0.2-detailed · 日期 2026-07-17
 > 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
@@ -147,19 +149,19 @@ sequenceDiagram
 
 | 字段 | 类型 | 取值范围 | 默认值 | 说明 |
 |---|---|---|---|---|
-| start_gold | int | 0–1000 | `[PLACEHOLDER]` | 开局金（GDD §6 base 300）。**调优杆**：起步节奏 |
+| start_gold | int | 0–1000 | `value_ref: balance/S03_economy.json#econ_start_gold` | 开局金（GDD §6 base 300）。**调优杆**：起步节奏 |
 | start_wood | int | 固定 0 | 0 | 开局木恒 0（木为 session 货币，仅怪掉 S04 + 应急兑换，不从档读） |
 | gold_cap | int | 1000–999999 | 99999 | 金上限（防溢出，结构值） |
 | wood_cap | int | 1000–999999 | 99999 | 木 session 上限（结构值，不持久化） |
-| exchange_rate | float | 0.1–10 | `[PLACEHOLDER]` | **应急**金→木 汇率（受 S21 热更，较差；GDD：1木=`[PLACEHOLDER]`金）。**调优杆**：应急桥经济第一杠杆，须劣于"纯怪掉"预期 |
+| exchange_rate | float | 0.1–10 | `value_ref: balance/S03_economy.json#econ_exchange_rate` | **应急**金→木 汇率（受 S21 热更，较差；GDD 初值：1木=0.1金）。**调优杆**：应急桥经济第一杠杆，须劣于"纯怪掉"预期 |
 | exchange_min_gold | int | 1–100 | 10 | 单次应急兑换最小金（防零换） |
-| emergency_max_per_session | int | 0–10 | `[PLACEHOLDER]` | 每副本次应急兑换次数上限（非主源硬限）。**调优杆**：防应急变主源 |
-| emergency_trigger | json | 触发条件 | `{lives_below:[PLACEHOLDER]}` | 应急兑换触发条件（如 Lives<阈值才可兑）。**调优杆**：紧急兜底语义 |
+| emergency_max_per_session | int | 0–10 | `value_ref: balance/S03_economy.json#econ_emergency_max_per_session` | 每副本次应急兑换次数上限（非主源硬限）。**调优杆**：防应急变主源 |
+| emergency_trigger | json | 触发条件 | `value_ref: balance/S03_economy.json#econ_emergency_trigger_lives` | 应急兑换触发条件（如 Lives<阈值才可兑）。**调优杆**：紧急兜底语义 |
 | batch_options | json | 档位数组 | [50,100,200] | 应急兑换批量档位 |
-| kill_reward_gold | int | 1–50 | `[PLACEHOLDER]` | 击杀基础金（随波次 HP 缩放）。**调优杆**：清场动力（木主源为怪掉，非金） |
-| boss_reward_gold | int | 50–500 | `[PLACEHOLDER]` | Boss 金。**调优杆**：Boss 波激励 |
-| inflation_threshold | float | >0 | `[PLACEHOLDER]` | 币/活跃人/日 告警线（GDD §6）。**调优杆**：通胀闸 |
-| sell_refund_rate | float | 0.3–0.9 | `[PLACEHOLDER]` | 卖塔返还比例（GDD §4：`[PLACEHOLDER]` 50%）。**调优杆**：防卡死 |
+| kill_reward_gold | int | 1–50 | `value_ref: balance/S03_economy.json#econ_kill_reward_gold` | 击杀基础金（随波次 HP 缩放）。**调优杆**：清场动力（木主源为怪掉，非金） |
+| boss_reward_gold | int | 50–500 | `value_ref: balance/S03_economy.json#econ_boss_reward_gold` | Boss 金。**调优杆**：Boss 波激励 |
+| inflation_threshold | float | >0 | `value_ref: balance/S03_economy.json#econ_inflation_threshold` | 币/活跃人/日 告警线（GDD §6）。**调优杆**：通胀闸 |
+| sell_refund_rate | float | 0.3–0.9 | `value_ref: balance/S03_economy.json#econ_sell_refund_rate` | 卖塔返还比例。**调优杆**：防卡死 |
 | wood_to_gold_enabled | bool | true/false | false | 木→金 是否开启（默认禁，防刷） |
 | wood_persist | bool | false | false | 木是否持久化（恒 false；session 货币，不写 S18） |
 
@@ -167,7 +169,7 @@ sequenceDiagram
 
 ```csv
 start_gold,start_wood,gold_cap,wood_cap,exchange_rate,exchange_min_gold,emergency_max_per_session,emergency_trigger,batch_options,kill_reward_gold,boss_reward_gold,inflation_threshold,sell_refund_rate,wood_to_gold_enabled,wood_persist
-[PLACEHOLDER],0,99999,99999,[PLACEHOLDER],10,[PLACEHOLDER],"{lives_below:[PLACEHOLDER]}","[50,100,200]",[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],false,false
+value_ref:balance/S03_economy.json#econ_start_gold,0,99999,99999,value_ref:balance/S03_economy.json#econ_exchange_rate,10,value_ref:balance/S03_economy.json#econ_emergency_max_per_session,"{lives_below:value_ref:balance/S03_economy.json#econ_emergency_trigger_lives}","[50,100,200]",value_ref:balance/S03_economy.json#econ_kill_reward_gold,value_ref:balance/S03_economy.json#econ_boss_reward_gold,value_ref:balance/S03_economy.json#econ_inflation_threshold,value_ref:balance/S03_economy.json#econ_sell_refund_rate,false,false
 ```
 
 > 说明：此为单例全局配置（一行）；多行示例仅用于展示"若分关卡差异化"的字段结构。木已 session 化：`start_wood=0`、`wood_persist=false`、`wood_house_rate` 字段已删除；金→木 仅剩"应急兑换"特例（受 `emergency_max_per_session`/`emergency_trigger` 限）。所有 `[PLACEHOLDER]` 须经试玩调优，禁止硬编码。
@@ -186,3 +188,90 @@ start_gold,start_wood,gold_cap,wood_cap,exchange_rate,exchange_min_gold,emergenc
 | 通胀告警 | — | — | — | 非玩家可见，仅 S25 运营侧，无资源 |
 
 > 图标经 S19 分包；飘字动画与打击感合并见 S23。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+
+| 字段 | 类型 | 来源 config 字段 |
+|---|---|---|
+| start_gold | int | `economy_config.start_gold`（本系统 §3） |
+| kill_reward_gold / boss_reward_gold | int | `economy_config.*`（本系统 §3，S5/S8 产出） |
+| drop_wood_amount | int | `wave_config.drop_wood_amount`（S04 §3，怪掉木） |
+| session_player_level | int | `player_level_config[level]`（S29，起始金元进度联动，可选） |
+
+### 5.2 输出数据结构
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| gold_balance / wood_balance | int | 当前余额（木为 session，不持久化） |
+| exchange_result | object | 应急兑换结果（木 += floor(K×rate)；金 -= K；次数 -1） |
+| inflation_alert | event | 超阈告警（→S21/S25） |
+
+### 5.3 跨系统接口调用表
+
+| caller | callee | function | 方向 | 用途 |
+|---|---|---|---|---|
+| S5 | S3 | `addGold(kill_reward_gold)` | in | 击杀加金 |
+| S4 | S3 | `addWood(drop_wood_amount)` | in | 怪掉加木（session） |
+| S8 | S3 | `settleGold(result)` | in | 结算金 |
+| S2 | S3 | `queryGold()` / `deductGold(cost)` | in | 建造扣金 |
+| S2 | S3 | `queryWood()` / `deductWood(cost)` | in | 养塔扣木 |
+| S3 | S25 | `reportProduction(type, amount)` | out | 产出上报（通胀监控） |
+| UI | S3 | `requestEmergencyExchange(goldAmount)` | in | 应急兑换 |
+| S3 | S18 | `loadStartGold()`（仅金） | in | 读档起始金 |
+
+### 5.4 错误码表
+
+| E# | 场景 | 兜底 | 涉及 |
+|---|---|---|---|
+| E01 | S21 远程汇率拉取失败 | 用本地默认应急汇率，不阻塞 | S21 |
+| E02 | 切后台 onHide(S20) | 木不持久化，计时挂起 | S20 |
+| E03 | 经济存档(金)损坏(S18) | 重置金为 start_gold | S18 |
+| E04 | 同帧多 source 加币 | 串行原子累加 | S3 |
+| E05 | 应急兑换中怪掉木 | 产出入队合并 | S3 |
+| E06 | 木超 session cap | 截断至 cap，报 S24 | S24 |
+| E07 | 金为负(异常) | 钳制 0，报 S24 | S24 |
+| E08 | `emergency_rate`≤0 | 用默认 1.0 并告警 | S24 |
+| E09 | `economy_config` 缺 | 内置默认全集 | S3 |
+| E10 | `inflation_threshold` 缺 | 跳过通胀检测 | S3 |
+| E11 | 应急次数已尽仍点 | 拒绝，按钮灰显 | S3 |
+
+### 5.5 状态转换表
+
+| state | event | transition | action |
+|---|---|---|---|
+| Idle | 应急条件不满足(次数=0 或 Lives≥阈值) | → Blocked | — |
+| Idle | 点应急兑换(条件满足) | → ExchangePanel | 弹面板 |
+| ExchangePanel | 确认 | → Exchanging | 木+=floor(K×rate)；金-=K；次数-1 |
+| Exchanging | 成功 | → Idle | 金↓木↑，次数-1 |
+| Exchanging | 金不足/失败 | → ExchangePanel | 提示 |
+| ExchangePanel | 取消 | → Idle | — |
+| Blocked | 条件恢复 | → Idle | 仍受次数限 |
+| Idle | 每局结束检测超阈 | → InflationAlert | 触发 S21/S25 |
+| InflationAlert | 触发 | → Idle | — |
+
+### 5.6 数值消费清单
+
+| param_id | 来源 balance 文件 |
+|---|---|
+| econ_start_gold | balance/S03_economy.json |
+| econ_exchange_rate | balance/S03_economy.json |
+| econ_emergency_max_per_session | balance/S03_economy.json |
+| econ_emergency_trigger_lives | balance/S03_economy.json |
+| econ_kill_reward_gold | balance/S03_economy.json |
+| econ_boss_reward_gold | balance/S03_economy.json |
+| econ_inflation_threshold | balance/S03_economy.json |
+| econ_sell_refund_rate | balance/S03_economy.json |
+
+---
+
+## 6. 冲突与待裁定
+
+| 项 | current_implementation | pending_decision | owner |
+|---|---|---|---|
+| 起始金元进度联动 | `econ_start_gold` 初值 300，现**未接** S29 `unlock_gold` 永久加成（effect_value 未定） | 是否启用 S29 起始金永久加成（gold ×(1+effect%)，单层不累加）及其 effect_value | S29（B 域，本 A 域改造不动） |
+
+> 其余字段无跨系统冲突；命名（木 session 化、应急兑换特例桥）已按 DO 新规对齐；数值初值全部锁定于 `balance/S03_economy.json`（8 个 param_id），无 `NEEDS-DESIGN`（本 A 域范围）。

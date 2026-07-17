@@ -1,0 +1,21 @@
+{
+  "cdx_src_e_slime_base_hp": 30.0,
+  "cdx_src_e_golem_base_hp": 120.0,
+  "cdx_src_e_wraith_base_hp": 80.0,
+  "enemy_hp_light": 30.0,
+  "enemy_hp_heavy": 120.0,
+  "enemy_hp_air": 70.0,
+  "enemy_hp_magic_immune": 90.0,
+  "enemy_hp_boss": 3000.0,
+  "enemy_speed_light": 70.0,
+  "enemy_speed_heavy": 50.0,
+  "enemy_speed_air": 80.0,
+  "enemy_speed_magic_immune": 65.0,
+  "enemy_speed_boss": 40.0,
+  "boss_speedup_mult": 1.3,
+  "boss_speedup_interval": 10.0,
+  "boss_heal_cut_rate": 0.5,
+  "enemy_level_scale_factor": 1.0,
+  "enemy_wave_hp_growth": 1.18,
+  "enemy_wave_speed_growth": 1.005
+}

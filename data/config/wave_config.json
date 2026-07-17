@@ -1,0 +1,10 @@
+{
+  "count": 8.0,
+  "spawn_interval": 1.2,
+  "base_hp": 30.0,
+  "prep_time": 8.0,
+  "reward_mult": 1.0,
+  "drop_wood_chance": 0.15,
+  "drop_wood_amount": 2.0,
+  "spawn_loops": 2.0
+}

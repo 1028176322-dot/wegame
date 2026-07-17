@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "tower_config",
+  "type": "object",
+  "properties": {
+    "cdx_src_t_arrow_base_dps": {
+      "type": "number"
+    },
+    "cdx_src_t_arrow_base_range": {
+      "type": "number"
+    },
+    "cdx_src_t_magic_base_dps": {
+      "type": "number"
+    },
+    "cdx_src_t_magic_base_range": {
+      "type": "number"
+    },
+    "cdx_src_t_wind_base_dps": {
+      "type": "number"
+    },
+    "cdx_src_t_wind_base_range": {
+      "type": "number"
+    },
+    "cdx_src_t_wind_growth": {
+      "type": "number"
+    },
+    "t_arrow_attack_speed": {
+      "type": "number"
+    },
+    "t_arrow_base_dps": {
+      "type": "number"
+    },
+    "t_arrow_build_cost": {
+      "type": "number"
+    },
+    "t_arrow_growth": {
+      "type": "number"
+    },
+    "t_arrow_max_level": {
+      "type": "number"
+    },
+    "t_arrow_range": {
+      "type": "number"
+    },
+    "t_arrow_sell_refund_rate": {
+      "type": "number"
+    },
+    "t_cannon_attack_speed": {
+      "type": "number"
+    },
+    "t_cannon_base_dps": {
+      "type": "number"
+    },
+    "t_cannon_build_cost": {
+      "type": "number"
+    },
+    "t_cannon_growth": {
+      "type": "number"
+    },
+    "t_cannon_max_level": {
+      "type": "number"
+    },
+    "t_cannon_range": {
+      "type": "number"
+    },
+    "t_cannon_sell_refund_rate": {
+      "type": "number"
+    },
+    "t_electric_attack_speed": {
+      "type": "number"
+    },
+    "t_electric_base_dps": {
+      "type": "number"
+    },
+    "t_electric_build_cost": {
+      "type": "number"
+    },
+    "t_electric_growth": {
+      "type": "number"
+    },
+    "t_electric_max_level": {
+      "type": "number"
+    },
+    "t_electric_range": {
+      "type": "number"
+    },
+    "t_electric_sell_refund_rate": {
+      "type": "number"
+    },
+    "t_ice_attack_speed": {
+      "type": "number"
+    },
+    "t_ice_base_dps": {
+      "type": "number"
+    },
+    "t_ice_build_cost": {
+      "type": "number"
+    },
+    "t_ice_growth": {
+      "type": "number"
+    },
+    "t_ice_max_level": {
+      "type": "number"
+    },
+    "t_ice_range": {
+      "type": "number"
+    },
+    "t_ice_sell_refund_rate": {
+      "type": "number"
+    },
+    "t_magic_attack_speed": {
+      "type": "number"
+    },
+    "t_magic_base_dps": {
+      "type": "number"
+    },
+    "t_magic_build_cost": {
+      "type": "number"
+    },
+    "t_magic_growth": {
+      "type": "number"
+    },
+    "t_magic_max_level": {
+      "type": "number"
+    },
+    "t_magic_range": {
+      "type": "number"
+    },
+    "t_magic_sell_refund_rate": {
+      "type": "number"
+    },
+    "t_poison_attack_speed": {
+      "type": "number"
+    },
+    "t_poison_base_dps": {
+      "type": "number"
+    },
+    "t_poison_build_cost": {
+      "type": "number"
+    },
+    "t_poison_growth": {
+      "type": "number"
+    },
+    "t_poison_max_level": {
+      "type": "number"
+    },
+    "t_poison_range": {
+      "type": "number"
+    },
+    "t_poison_sell_refund_rate": {
+      "type": "number"
+    },
+    "t_wind_attack_speed": {
+      "type": "number"
+    },
+    "t_wind_base_dps": {
+      "type": "number"
+    },
+    "t_wind_build_cost": {
+      "type": "number"
+    },
+    "t_wind_growth": {
+      "type": "number"
+    },
+    "t_wind_max_level": {
+      "type": "number"
+    },
+    "t_wind_range": {
+      "type": "number"
+    },
+    "t_wind_sell_refund_rate": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,6 @@
+{
+  "sample_rate": 1.0,
+  "inflation_threshold": 1.5,
+  "report_interval": 300.0,
+  "buffer_max": 1000.0
+}

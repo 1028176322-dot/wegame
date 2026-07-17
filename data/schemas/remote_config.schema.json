@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "remote_config",
+  "type": "object",
+  "properties": {
+    "drop_mult": {
+      "type": "number"
+    },
+    "exchange_rate": {
+      "type": "number"
+    },
+    "fetch_interval": {
+      "type": "number"
+    },
+    "flag_monetize": {
+      "type": "number"
+    },
+    "flag_season": {
+      "type": "number"
+    },
+    "gold_per_wave_base": {
+      "type": "number"
+    },
+    "inflation_threshold": {
+      "type": "number"
+    },
+    "show_reload_toast": {
+      "type": "number"
+    },
+    "wave_diff_mult": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

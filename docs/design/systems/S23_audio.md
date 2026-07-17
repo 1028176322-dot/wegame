@@ -1,13 +1,19 @@
 <!-- 编码: UTF-8 -->
 # 系统策划案：S23 音频系统 (Audio System)
 
-> 归属域：C 平台工程运营域 · 层级/优先级：增强 / P2 · 关联 F 码：F18 F35 · 关联：SYSTEM_BREAKDOWN §S23 · GDD §2（Fun Hypothesis 放大器）
-> 状态：v0.2-detailed · 日期：2026-07-17
-> 上一版：v0.1-draft（仅骨架：模块表 5 行 + 4 异常 + 单表 6 字段）
+## 0. 元数据头
+
+- 归属域：C 平台工程运营域
+- 层级 / 优先级：增强 / P2
+- 关联 F 码：F18 F35
+- 关联系统：S5/S6/S2（事件触发反馈）、S22（音频开关镜像）、S19（音频资产 F35）、S20（生命周期暂停/续）、S25（并发超限告警）、S36（打击感增强）
+- 版本：v0.2-detailed（2026-07-17）
+- 依赖：`wx.vibrateShort`；S19 分包资源；S22 开关状态
+- NEEDS-DESIGN 索引：S23-ND1（bgm_volume，NEEDS-DESIGN owner:S23 due:P4-tuning）｜S23-ND2（sfx_volume，NEEDS-DESIGN owner:S23 due:P4-tuning）｜S23-ND3（max_sfx_concurrent，NEEDS-DESIGN owner:S23 due:P4-tuning）｜S23-ND4（shake_intensity，NEEDS-DESIGN owner:S23 due:P4-tuning）
 
 ---
 
-## 0. 修订说明（v0.1 → v0.2 加深点）
+### 0.1 修订说明（v0.1 → v0.2 加深点）
 
 | 章节 | v0.1 | v0.2 加深内容 |
 |------|------|---------------|
@@ -146,28 +152,28 @@ sequenceDiagram
 |------|------|----------|--------|------|
 | bgm_enabled | bool | true/false | true | BGM 总开关（镜像 S22.bgm） |
 | sfx_enabled | bool | true/false | true | 音效总开关（镜像 S22.sfx） |
-| bgm_volume | float | 0–1 | `[PLACEHOLDER]` | BGM 音量 **调优杆** |
-| sfx_volume | float | 0–1 | `[PLACEHOLDER]` | 音效音量 **调优杆** |
-| max_sfx_concurrent | int | 4–32 | `[PLACEHOLDER]` | 音效并发上限 **调优杆** |
+| bgm_volume | float | 0–1 | S23-ND1 · NEEDS-DESIGN (owner: S23, due: P4-tuning) | BGM 音量 **调优杆** |
+| sfx_volume | float | 0–1 | S23-ND2 · NEEDS-DESIGN (owner: S23, due: P4-tuning) | 音效音量 **调优杆** |
+| max_sfx_concurrent | int | 4–32 | S23-ND3 · NEEDS-DESIGN (owner: S23, due: P4-tuning) | 音效并发上限 **调优杆** |
 | shake_on_kill | bool | true | true | 击杀震屏 |
-| shake_intensity | float | 0.1–1 | `[PLACEHOLDER]` | 震屏强度 **调优杆** |
+| shake_intensity | float | 0.1–1 | S23-ND4 · NEEDS-DESIGN (owner: S23, due: P4-tuning) | 震屏强度 **调优杆** |
 | hit_fx_level | enum | low/mid/high | mid | 打击感档（粒子密度） |
 | sfx_priority | json | 事件优先级 | {"boss":9,"upgrade":8,"kill":5,"hit":2} | 并发丢弃依据 |
 
 ### 3.2 示例数据（多行）
 **示例 A：默认（中打击感）**
 ```json
-{ "bgm_enabled": true, "sfx_enabled": true, "bgm_volume": "[PLACEHOLDER]", "sfx_volume": "[PLACEHOLDER]",
-  "max_sfx_concurrent": "[PLACEHOLDER]", "shake_on_kill": true, "shake_intensity": "[PLACEHOLDER]",
+{ "bgm_enabled": true, "sfx_enabled": true, "bgm_volume": "S23-ND1", "sfx_volume": "S23-ND2",
+  "max_sfx_concurrent": "S23-ND3", "shake_on_kill": true, "shake_intensity": "S23-ND4",
   "hit_fx_level": "mid", "sfx_priority": {"boss":9,"upgrade":8,"kill":5,"hit":2} }
 ```
 **示例 B：低配机/省电（关震屏、低打击感）**
 ```json
-{ "bgm_enabled": true, "sfx_enabled": true, "bgm_volume": "[PLACEHOLDER]", "sfx_volume": "[PLACEHOLDER]",
-  "max_sfx_concurrent": "[PLACEHOLDER]", "shake_on_kill": false, "shake_intensity": "[PLACEHOLDER]",
+{ "bgm_enabled": true, "sfx_enabled": true, "bgm_volume": "S23-ND1", "sfx_volume": "S23-ND2",
+  "max_sfx_concurrent": "S23-ND3", "shake_on_kill": false, "shake_intensity": "S23-ND4",
   "hit_fx_level": "low", "sfx_priority": {"boss":9,"upgrade":8,"kill":5,"hit":2} }
 ```
-> `bgm_volume`/`sfx_volume`/`max_sfx_concurrent`/`shake_intensity` 为试听调优杆，标 `[PLACEHOLDER]`；开关（`*_enabled`）与外部 S22 保持镜像，避免双源冲突。
+> `bgm_volume`/`sfx_volume`/`max_sfx_concurrent`/`shake_intensity` 为试听调优杆，标 `S23-ND1`~`S23-ND4`（NEEDS-DESIGN，见 §0 索引 / §5.6）；开关（`*_enabled`）与外部 S22 保持镜像，避免双源冲突。
 
 ---
 
@@ -184,3 +190,75 @@ sequenceDiagram
 | （Boss 专属） | 音频/特效 | 见 S36 | 见 S36 | — | — | 增强项，细节在 S36 |
 
 > 音频格式/分包见 S19(F35)；打击感细节（粒子密度/顿帧）见 S36(增强)。所有序列帧合图集，单图 ≤128KB。
+
+---
+
+## 5. 实现契约
+
+### 5.1 输入数据结构
+| 字段 | 类型 | 来源 config 字段 / 说明 |
+|------|------|------------------------|
+| bgm_volume | float | `audio_config.bgm_volume`（S23-ND1） |
+| sfx_volume | float | `audio_config.sfx_volume`（S23-ND2） |
+| max_sfx_concurrent | int | `audio_config.max_sfx_concurrent`（S23-ND3） |
+| shake_intensity | float | `audio_config.shake_intensity`（S23-ND4） |
+| bgm_enabled / sfx_enabled | bool | 镜像 `settings_config.bgm` / `.sfx`（S22） |
+
+### 5.2 输出数据结构
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| fx_handles | object | 打击感层 z=36 粒子/闪光/飘字/震屏句柄 |
+| concurrent_count | int | 当前音效并发计数 |
+
+### 5.3 跨系统接口调用表
+| caller | callee | function | 方向 | 用途 |
+|--------|--------|----------|------|------|
+| S5/S6/S2 | S23 | `onKill` / `onUpgrade` 等 | in | 事件触发反馈 |
+| S22 | S23 | `isBgm/SfxEnabled` | in | 开关约束 |
+| S23 | wx | `vibrateShort` | out | 震动 |
+| S23 | S19 | 资源就绪 | in | 分包加载资源 |
+| S20 | S23 | `pauseBGM` / `resumeBGM` | in | 生命周期 |
+| S23 | S25 | `report(并发超限)` | out | 告警 |
+
+### 5.4 错误码表
+| E# | 场景 | 兜底 | 涉及系统 |
+|----|------|------|----------|
+| E1 | 音效并发超限 | 按优先级丢低优先 | — |
+| E2 | 音频加载失败 | 静默，仅视觉 | S19 |
+| E3 | 震动不支持 | 静默忽略 | wx |
+| E4 | 暂停 | 停 BGM/音效 | S20 |
+| E5 | 音频焦点丢失 | 监听中断→暂停续播 | — |
+| E6 | 资源缺失单文件 | 跳过该音效 | — |
+| E7 | 多事件同帧 | 合并为一次 Boss 音+单次震屏 | — |
+| E8 | 音量极值 | 0=静音不崩；1=限幅 | — |
+| E9 | 开关与 S22 不同步 | 广播即时重读 | S22 |
+| E10 | 设备静音模式 | 照常（独立会话） | — |
+| E11 | 离线无网络 | 纯本地正常 | — |
+| E12 | 打击感层溢出 | 池上限回收最旧 | — |
+
+### 5.5 状态转换表
+| state | event | transition | action |
+|-------|-------|-----------|--------|
+| Unloaded | 进关 | → Loading | 请求分包资源 |
+| Loading | 资源就绪 | → Ready | — |
+| Loading | 资源缺失/失败 | → Silent | 仅视觉 |
+| Ready | BGM 循环+待事件 | → Playing | — |
+| Silent | 仅视觉 | → Playing | — |
+| Playing | onHide/焦点丢失 | → Paused | 停 BGM/音效 |
+| Paused | onShow/焦点恢复 | → Playing | 续播 |
+| Playing | S22 关音频 | → Muted | — |
+| Muted | S22 开音频 | → Playing | — |
+| Playing | 收到音效事件 | → Burst | 播+震屏 |
+| Burst | 播完/并发回收 | → Playing | — |
+
+### 5.6 数值消费清单
+本系统**无 balance 层数值参数**，纯配置/逻辑；音量/并发/震屏为 config 层（非 balance）调优杆，由 `config/audio_config.json` 持有。开放调优项见 §0 索引：
+- `S23-ND1` bgm_volume — NEEDS-DESIGN (owner: S23, due: P4-tuning)
+- `S23-ND2` sfx_volume — NEEDS-DESIGN (owner: S23, due: P4-tuning)
+- `S23-ND3` max_sfx_concurrent — NEEDS-DESIGN (owner: S23, due: P4-tuning)
+- `S23-ND4` shake_intensity — NEEDS-DESIGN (owner: S23, due: P4-tuning)
+
+## 6. 冲突与待裁定
+
+### 6.1 冲突汇总
+本系统无 DO 待裁定冲突项；开放调优项见 §0 索引 / §5.6。

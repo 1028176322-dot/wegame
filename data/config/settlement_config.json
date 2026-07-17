@@ -1,0 +1,9 @@
+{
+  "win_base_gold": 100.0,
+  "win_base_wood": 50.0,
+  "per_wave_gold": 3.0,
+  "leak_penalty": 0.3,
+  "new_record_bonus": 20.0,
+  "xp_base": 50.0,
+  "per_wave_xp": 2.0
+}

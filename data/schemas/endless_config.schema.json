@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "endless_config",
+  "type": "object",
+  "properties": {
+    "boss_every": {
+      "type": "number"
+    },
+    "k_hp": {
+      "type": "number"
+    },
+    "k_speed": {
+      "type": "number"
+    },
+    "max_wave_cap": {
+      "type": "number"
+    },
+    "reward_gold": {
+      "type": "number"
+    },
+    "reward_wood": {
+      "type": "number"
+    },
+    "score_kill": {
+      "type": "number"
+    },
+    "score_wave": {
+      "type": "number"
+    },
+    "unlock_level": {
+      "type": "number"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

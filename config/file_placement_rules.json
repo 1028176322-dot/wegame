@@ -127,6 +127,15 @@
       "notes": "不得被 current 入口继续引用"
     },
     {
+      "path": ".workbuddy",
+      "owner": "Curator",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "Decision Owner 裁定须入库的项目治理运行目录（memory/skills/协调文件）；不在冻结锁内"
+    },
+    {
       "path": "docs/design",
       "owner": "Decision Owner",
       "allowedPatterns": ["*.md", "*.json", "*.csv"],

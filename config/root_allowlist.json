@@ -21,7 +21,8 @@
     "data",
     "archive",
     "deprecated",
-    "experimental"
+    "experimental",
+    ".workbuddy"
   ],
   "forbiddenPatterns": [
     "*.tmp", "*.log", "*.zip", "*.bak",

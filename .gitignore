@@ -22,5 +22,5 @@ node_modules/
 __pycache__/
 *.pyc
 
-# 本地工具运行目录（助手/IDE 运行时，非项目源码，不得入库）
-.workbuddy/
+# 注意：.workbuddy/ 为项目治理运行目录（memory/skills/协调文件），
+# 由 Decision Owner 裁定须纳入版本控制（见 AUTHORITY_INDEX 冻结锁注释），故不忽略。

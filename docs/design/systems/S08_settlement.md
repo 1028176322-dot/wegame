@@ -1,0 +1,178 @@
+<!-- 编码: UTF-8 -->
+# 系统策划案：S8 结算系统 (Settlement System)
+
+> 归属域：A 核心战斗域 · 层级/优先级：MVP / P1 · 关联 F 码：F12 · 关联：GDD §5.7（胜负）；SYSTEM_BREAKDOWN §S8
+> 状态：v0.2-detailed · 日期 2026-07-17
+> 版本说明：在 v0.1-draft 基础上补全 像素级 UI 线框 / 状态机 / 时序图 / 异常边界用例 / 完整配置字段与多行示例 / 美术资源帧数·分辨率·格式·切片。
+> 平衡数值（胜利基础金/木、每波奖励、漏怪系数、新纪录奖励等产出公式）保持 `[PLACEHOLDER]`，仅标注"调优杆"，禁止硬编码。
+> **v0.2（S29 等级系统）**：结算新增 **XP 产出**（`xp_gain`，[PLACEHOLDER]）→ 累加 S29 `current_xp` → 跨 `xp_required` 阈值升级；结算面板与配置表同步加 XP 字段，状态机/时序/异常补 XP 分支。详见 S29。
+
+---
+
+## 1. 系统 UI 布局
+
+### 1.1 布局层级（z 轴，全屏弹层）
+
+| 层级 z | 名称 | 说明 |
+|---|---|---|
+| 70 | 结算面板 | 居中：胜负标题 + 战绩 + 产出 |
+| 70 | 按钮区 | "再来一局"（主）/ "回大厅"（次） |
+| 71 | 新纪录提示 | 破最佳时金边"新纪录！" |
+
+### 1.2 像素级线框（750 × 1334）
+
+```
+  (0,0)┌─────────────────────────────────────────── 750 ──┐
+       │              （战斗冻结背景）                      │
+       │  ┌── 结算面板 z70 (75,400)-(675,900) ──┐          │ y=400
+       │  │  胜 利!  [新纪录!] z71              │          │
+       │  │  撑过 X 波 · 漏 Y 只 · 最高塔 Lv.Z  │          │
+       │  │  产出: 🪙 +A   🪵 +B               │          │
+       │  │  ✨ 等级 XP +C   Lv.P→Lv.Q ▰▱▱▱   │          │  ← S29 新增
+       │  └──────────────────────────────────┘          │ y=900
+       │  [再来一局] (40,1050) 330×96      [回大厅] 330×96 │ y=1050
+       └──────────────────────────────────────────── 1334 ┘
+        （失败：同面板，简版战绩，不罚资源）
+```
+
+### 1.3 组件表（x,y 左上角；w×h；z）
+
+| 组件 | 坐标(x,y) | 尺寸(w×h) | z | 响应行为 |
+|---|---|---|---|---|
+| 结算面板 | (75,400) | 600×500 | 70 | 展示战绩+产出 |
+| 再来一局 | (40,1050) | 330×96 | 70 | 点→重置单局→S1 开局 |
+| 回大厅 | (380,1050) | 330×96 | 70 | 点→S10 |
+| 新纪录标 | (555,410) | 120×48 | 71 | 破纪录显示，金边闪光 |
+| 胜利/失败标题 | (375,440) 居中 | 文本 48px | 70 | 静态 |
+| 等级 XP 显示 | (375,820) 居中 | 文本 24px | 70 | 静态(接 S29) |
+
+### 1.4 交互流程图（mermaid flowchart）
+
+```mermaid
+flowchart TD
+    A[胜: 全波清空 / 败: Lives=0] --> B[算产出公式]
+    B --> C{胜利?}
+    C -->|是| D[产出=base+per_wave×wave×leak_coef]
+    C -->|否| E[简版战绩, 无惩罚产出]
+    D --> F[入账 S3/S11 + 写档 S18]
+    E --> F
+    F --> G[比对历史最佳→新纪录?]
+    G --> H[显示面板]
+    H --> I{点按钮}
+    I -->|再来一局| J[重置→S1]
+    I -->|回大厅| K[S10]
+```
+
+---
+
+## 2. 逻辑功能
+
+### 2.1 功能模块表（触发 / 处理 / 输出）
+
+| 模块 | 触发条件 | 处理流程（正常） | 输出 |
+|---|---|---|---|
+| 胜利结算 | 全波清空 | 产出 = base + per_wave×wave_reached×leak_coef → 写 S3/S11 → 写档 | 战绩+产出 |
+| XP 产出 | 胜/负结算 | `xp_gain` = xp_base + per_wave_xp×wave_reached×(1−leak_penalty×leak_normalized) → 累加 S29 `current_xp` → 可能升级（S29） | 等级 XP |
+| 失败结算 | Lives=0 | 简版战绩（无惩罚产出）→ 写最佳波数 | 战绩 |
+| 新纪录判定 | 写档时 | 比对历史最佳 → 标记 | 新纪录标 |
+| 再来一局 | 点按钮 | 重置单局状态 → 回 S1 开局 | 新局 |
+| 回大厅 | 点按钮 | 存档 → S10 | 大厅 |
+
+### 2.2 状态机（mermaid stateDiagram-v2 — 结算状态）
+
+```mermaid
+stateDiagram-v2
+    [*] --> WinSettle : 全波清空
+    [*] --> FailSettle : Lives=0
+    WinSettle --> ShowPanel : 算产出+入账
+    FailSettle --> ShowPanel : 简版战绩
+    ShowPanel --> XPGain : 产 xp_gain → S29
+    XPGain --> RecordCheck : 写档 + 升级判定(可能跳级)
+    RecordCheck --> Idle : 显示面板
+    Idle --> Restart : 点再来一局
+    Idle --> Lobby : 点回大厅
+```
+
+### 2.3 时序流程图（mermaid sequenceDiagram — 胜利结算入账）
+
+```mermaid
+sequenceDiagram
+    participant S4 as 波次
+    participant S8 as 结算系统
+    participant S3 as 经济系统
+    participant S11 as 元进度
+    participant S29 as 等级系统
+    participant S18 as 存档
+    S4->>S8: 全波清空→胜利
+    S8->>S8: 产出=base+per_wave×wave×leak_coef
+    S8->>S3: 入账金/木
+    S8->>S11: 元进度入账
+    S8->>S29: xp_gain = xp_base+per_wave×wave×(1−leak_penalty×leak_norm)
+    S29->>S29: current_xp += xp_gain; 重算 level
+    S29->>S18: 写 player_level/current_xp
+    S8->>S18: 写档(战绩+最佳)
+    S8-->>UI: 显示面板(新纪录?)
+    UI->>S8: 点再来一局
+    S8->>S1: 重置单局
+```
+
+### 2.4 异常与边界用例表
+
+| 场景 | 触发条件 | 处理流程 | 输出 / 兜底 |
+|---|---|---|---|
+| 网络中断 | 结算写本地(S18)；云(S42 暂不做)忽略 | 先落本地；若接 S21 远程结算参数失败→用本地默认 | 不阻塞 |
+| 切后台（S20） | 结算过程中 `onHide` | 结算流程加锁，本地写同步完成后再响应暂停 | 不丢产出 |
+| 数据损坏（S18） | 写档失败/坏档 | 重试 3 次→失败则缓存内存，下次启动补写 | 产出不丢 |
+| 并发操作 | 重复触发结算（竞态） | 加锁，仅首触发有效 | 不重复结算 |
+| 并发操作 | 再来一局时资源未到账 | 等入账完成再重置 | 防丢资源 |
+| 数值极值 | 产出计算溢出 | 钳制至 cap(S3) | 不溢出 |
+| 数值极值 | `wave_reached` > total | 钳制至 total | 合理 |
+| 数值极值 | `leak_penalty` > 1 | 钳制 [0,1] | 系数合法 |
+| 配置缺失 | `settlement_config` 缺 | 用保底公式 + 告警 S25 | 可结算 |
+| 配置缺失 | 产出计算异常 | 保底公式兜底 | 不崩 |
+| 新纪录判定异常 | 历史最佳读取失败 | 视为无记录→按新纪录处理（false positive 安全） | 不漏记 |
+| XP 产出异常 | `xp_gain` 计算为负/溢出 | 钳制至 [0, cap]；异常则不升级、不崩 | 安全 |
+| 升级并发 | 结算与升级回写竞态 | S29 `isLeveling` 锁，仅首触发有效；S8 侧不重复产 XP | 不重复 |
+| 升级持久化失败 | 写 `player_level`/`current_xp` 失败 | 同数据损坏处理（重试 3 次→内存缓存，下次补写） | 不丢 |
+
+---
+
+## 3. 配置表设计
+
+**表名：`settlement_config`（结算配置）**
+
+| 字段 | 类型 | 取值范围 | 默认值 | 说明 |
+|---|---|---|---|---|
+| win_base_gold | int | 10–500 | `[PLACEHOLDER]` | 胜利基础金。**调优杆**：通关激励 |
+| win_base_wood | int | 10–500 | `[PLACEHOLDER]` | 胜利基础木。**调优杆**：养塔来源 |
+| per_wave_gold | int | 1–50 | `[PLACEHOLDER]` | 每撑过波奖励金。**调优杆**：进度价值 |
+| leak_penalty | float | 0–1 | `[PLACEHOLDER]` | 漏怪产出系数（少漏多奖）。**调优杆**：取舍 |
+| fail_penalty | bool | true/false | false | 失败是否扣资源（默认否，降挫败） |
+| new_record_bonus | int | 0–100 | `[PLACEHOLDER]` | 新纪录额外奖励。**调优杆**：冲榜动力 |
+| best_metric | enum | wave/tower_level | "wave" | 最佳记录维度（接 S13） |
+| xp_base | int | 0–500 | `[PLACEHOLDER]` | 胜利基础 XP（S29）。**调优杆**：升级节奏 |
+| per_wave_xp | int | 1–50 | `[PLACEHOLDER]` | 每撑过波奖励 XP（S29）。**调优杆**：进度价值 |
+
+**多行示例数据（CSV；数值列 `[PLACEHOLDER]` 为待调优占位）**
+
+```csv
+win_base_gold,win_base_wood,per_wave_gold,leak_penalty,fail_penalty,new_record_bonus,best_metric,xp_base,per_wave_xp
+[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],[PLACEHOLDER],false,[PLACEHOLDER],wave,[PLACEHOLDER],[PLACEHOLDER]
+```
+
+> 说明：单例全局配置（一行）；所有 `[PLACEHOLDER]` 须经试玩调优，禁止硬编码。产出公式：`gold = win_base_gold + per_wave_gold × wave_reached × (1 − leak_penalty × leak_count_normalized)`；XP 公式（S29）：`xp_gain = xp_base + per_wave_xp × wave_reached × (1 − leak_penalty × leak_count_normalized)`。
+
+---
+
+## 4. 美术资源需求
+
+| 资源 | 帧数 | 分辨率 | 格式 | 切片要求 |
+|---|---|---|---|---|
+| 结算面板底 | 1（静态，九宫） | 600×500 | PNG | 九宫 |
+| 胜利/失败标题字 | 各1（静态） | 文本 48px | 引擎文本 | 金/灰 |
+| 再来一局 / 回大厅按钮 | 主/次态各 normal+press | 330×96 | Atlas | 单格切片 |
+| 新纪录标 | 金边闪光 4 帧 | 120×48 | Atlas | 单格切片 |
+| 战绩图标 | 金/木/波 小图标各1 | 32×32 | Atlas | 单格切片 |
+| 分享按钮（预留） | normal+press 各1 | 120×64 | Atlas | 暂隐藏（F40 接口） |
+
+> 结算演出 F40 暂不做；面板资源分包见 S19。

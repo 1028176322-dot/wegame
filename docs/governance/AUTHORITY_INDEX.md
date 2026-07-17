@@ -12,6 +12,7 @@
 | data-config | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引入配置/存档结构 |
 | ux-content-assets | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引入美术/音频/文案资产 |
 | gameplay-systems | `docs/design/GDD.md` | 本索引、ADR-0002 | — | current | Decision Owner | 2026-07-17 | 塔种调整/核心机制变更 |
+| system-design | `docs/design/SYSTEM_BREAKDOWN.md` | GDD/FEATURE_SCOPE/GAME_FLOW/`docs/design/systems/` | — | current | Decision Owner | 2026-07-17 | 新系统增删/系统边界变更/塔种扩展 |
 | test-quality | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 建立测试框架 |
 | platform-release | `docs/governance/PLATFORM_RELEASE.md` | 方案 §18 | — | current | Decision Owner | 2026-07-17 | 发布平台变更/微信政策变化 |
 | security-compliance | `docs/governance/SECURITY_RULES.md` | 方案 §15、§16 | — | current | Decision Owner | 2026-07-17 | 引入密钥/用户数据/合规要求 |
@@ -24,6 +25,9 @@
 | `docs/governance/通用AI项目管理方案.md` | `0bb4b00bfb0a433be144b0b636cf071af2f4ba689f536d8453a631d898ee298e` |
 | `docs/governance/TECH_ARCHITECTURE.md` | `3ed1a6acbf1a4647eae639e69bfd1d8e3f07e64e90d41b88a94094e30a78eafc` |
 | `docs/governance/PLATFORM_RELEASE.md` | `2ecc88addbb901c8f8b168c470fa4ed282746c73d6533cd30f218ce6d9936207` |
-| `docs/design/GDD.md` | `2adaef2ff6fab1ed8379c5683936a52244df331f0309dd9aa6dd6af2a039d30f` |
+| `docs/design/GDD.md` | `fed0c67ee285d5a1d301b27c555f0294c407974c02fb5dc724ef02eaa988b372` |
+| `docs/design/SYSTEM_BREAKDOWN.md` | `c19299c1acfe8db4c8a2694467e8289470b5db35d614e54de2e12f9504f4827c` |
+| `docs/design/FEATURE_SCOPE.md` | `5f226cbd819383944657ac7f551003eb2fac495c11216e31107236e4b8d368ef` |
+| `docs/design/GAME_FLOW.md` | `d185e92b442447fa0c24d121cf254475428fa36ac66b36833a0c20f03869ca34` |
 
-> 注：tech-architecture、platform-release、product-design、gameplay-systems 均已由 Decision Owner 裁定 current 入口（2026-07-17；D-01 玩法=塔防，参考《绿色循环圈》，见 ADR-0002 与 `docs/design/GDD.md`）。剩余 `unassessed`：data-config、ux-content-assets、test-quality，须在对应首个工程/决策任务中裁定。
+> 注：tech-architecture、platform-release、product-design、gameplay-systems、system-design 均已由 Decision Owner 裁定 current 入口（2026-07-17；D-01 玩法=塔防，参考《绿色循环圈》，见 ADR-0002 与 `docs/design/`；system-design 覆盖 GDD/SYSTEM_BREAKDOWN/FEATURE_SCOPE/GAME_FLOW/systems/ 共 29 系统 + 4 顶层文档，v0.2-detailed）。剩余 `unassessed`：data-config、ux-content-assets、test-quality，须在对应首个工程/决策任务中裁定。

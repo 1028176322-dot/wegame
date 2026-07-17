@@ -1,0 +1,19 @@
+# 临时与缓存（方案 §4.10、§16）
+.scratch/
+.cache/
+outputs/logs/
+*.tmp
+*.log
+*.bak
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 发布产物（通常不直接提交，方案 §4.3）
+dist/
+build/
+releases/
+
+# 依赖（引擎/技术栈选型后按需补充）
+node_modules/

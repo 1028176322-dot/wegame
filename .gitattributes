@@ -1,0 +1,14 @@
+# 统一文本编码与换行（方案 §16.3）
+* text=auto eol=lf
+
+# 文档
+*.md text eol=lf
+*.json text eol=lf
+
+# 二进制（游戏资产，选型后细化）
+*.png binary
+*.jpg binary
+*.wav binary
+*.mp3 binary
+*.fbx binary
+*.zip binary

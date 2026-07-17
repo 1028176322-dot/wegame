@@ -1,0 +1,8 @@
+{
+  "description": "Skill/插件/自动化能力注册表（方案 §13.1）。仅 active + available + hash匹配 的能力可自动调用。",
+  "version": 1,
+  "baselineDate": "2026-07-17",
+  "owner": "Curator",
+  "statusValues": ["candidate", "approved", "active", "deprecated", "quarantined", "retired"],
+  "skills": []
+}

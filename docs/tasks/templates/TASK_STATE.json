@@ -1,0 +1,13 @@
+{
+  "taskId": "TASK-001",
+  "changeListSha256": "<sha256>",
+  "status": "in_progress",
+  "currentStep": "step-2",
+  "nextAction": "modify exactly one declared file",
+  "completedFiles": [],
+  "pendingFiles": [],
+  "blockedBy": [],
+  "knownFailures": [],
+  "lastCheckpoint": "<ISO-8601>",
+  "head": "<git-sha>"
+}

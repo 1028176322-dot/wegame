@@ -1,0 +1,30 @@
+{
+  "description": "仓库根目录允许清单（方案 §4.2）。未在此列出的文件不得直接创建在根目录。",
+  "version": 1,
+  "baselineDate": "2026-07-17",
+  "owner": "Decision Owner",
+  "allowedFiles": [
+    "PROJECT_RULES.md",
+    "README.md",
+    "LICENSE",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    ".gitignore",
+    ".gitattributes"
+  ],
+  "allowedDirectories": [
+    "docs",
+    "memory",
+    "skills",
+    "tools",
+    "config",
+    "archive",
+    "deprecated",
+    "experimental"
+  ],
+  "forbiddenPatterns": [
+    "*.tmp", "*.log", "*.zip", "*.bak",
+    "*_new.*", "*_final.*", "*_copy.*", "*_backup*.*",
+    "new/", "final/", "temp/", "misc/", "others/"
+  ]
+}

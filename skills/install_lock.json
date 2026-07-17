@@ -1,0 +1,6 @@
+{
+  "description": "Skill 安装锁（方案 §13.6）。记录来源与安装副本的精确内容 hash，用于检测漂移。",
+  "version": 1,
+  "baselineDate": "2026-07-17",
+  "locks": []
+}

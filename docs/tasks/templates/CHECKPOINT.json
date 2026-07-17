@@ -1,0 +1,16 @@
+{
+  "taskId": "TASK-001",
+  "changeListSha256": "<sha256>",
+  "checkpointId": "CP-003",
+  "completedStep": "step-2",
+  "currentStep": "step-3",
+  "nextAction": "one exact action",
+  "modifiedFiles": [{"path": "path", "sha256": "sha"}],
+  "pendingFiles": [],
+  "validation": [],
+  "knownFailures": [],
+  "blockedBy": [],
+  "activeConflictCheck": "PASS",
+  "head": "<git-sha>",
+  "createdAt": "<ISO-8601>"
+}

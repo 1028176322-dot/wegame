@@ -1,0 +1,130 @@
+{
+  "description": "文件放置规则（方案 §4.13）。文件治理检查器据此判断放置合法性。",
+  "version": 1,
+  "baselineDate": "2026-07-17",
+  "rootAllowlistRef": "config/root_allowlist.json",
+  "directoryRules": [
+    {
+      "path": "docs/governance",
+      "owner": "Decision Owner",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.tmp", "*.log", "*.zip", "*.bin"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "只保留 current 入口及明确历史关系；方法论 canonical 副本唯一"
+    },
+    {
+      "path": "docs/decisions",
+      "owner": "Decision Owner",
+      "allowedPatterns": ["ADR-*.md"],
+      "forbiddenPatterns": ["*"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "ADR 稳定编号，不随实现文件移动"
+    },
+    {
+      "path": "docs/progress",
+      "owner": "Decision Owner",
+      "allowedPatterns": ["*.md"],
+      "forbiddenPatterns": ["*.bin", "*.zip"],
+      "generated": false,
+      "retention": "project-lifetime"
+    },
+    {
+      "path": "docs/tasks",
+      "owner": "Coordinator",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.bin", "*.zip"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "任务卡/Change List 必须带任务ID"
+    },
+    {
+      "path": "docs/tasks/reports",
+      "owner": "project-governance",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.bin", "*.zip"],
+      "generated": false,
+      "retention": "project-lifetime"
+    },
+    {
+      "path": "docs/tasks/coordination",
+      "owner": "Coordinator",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*"],
+      "generated": false,
+      "retention": "project-lifetime"
+    },
+    {
+      "path": "memory",
+      "owner": "Curator",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.zip", "*.bin"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "唯一活动记忆根；不得存在竞争副本"
+    },
+    {
+      "path": "skills",
+      "owner": "Curator",
+      "allowedPatterns": ["*.json", "*.md"],
+      "forbiddenPatterns": ["*.zip"],
+      "generated": false,
+      "retention": "project-lifetime"
+    },
+    {
+      "path": "tools/validators",
+      "owner": "Executor",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "默认只读，返回明确退出码"
+    },
+    {
+      "path": "tools/maintenance",
+      "owner": "Executor",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "默认 dry-run，可重复执行"
+    },
+    {
+      "path": "tools/generators",
+      "owner": "Executor",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "声明输入、输出和确定性"
+    },
+    {
+      "path": "experimental",
+      "owner": "Executor",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "expires-per-task",
+      "notes": "experimental/<TASK-ID>/，有 Owner、到期日和转正规则"
+    },
+    {
+      "path": "archive",
+      "owner": "Curator",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "read-only",
+      "notes": "只读，保留索引和归档原因"
+    },
+    {
+      "path": "deprecated",
+      "owner": "Curator",
+      "allowedPatterns": ["*"],
+      "forbiddenPatterns": [],
+      "generated": false,
+      "retention": "read-only",
+      "notes": "不得被 current 入口继续引用"
+    }
+  ]
+}

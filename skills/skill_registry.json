@@ -4,5 +4,34 @@
   "baselineDate": "2026-07-17",
   "owner": "Curator",
   "statusValues": ["candidate", "approved", "active", "deprecated", "quarantined", "retired"],
-  "skills": []
+  "skills": [
+    {
+      "id": "project-governance",
+      "name": "通用AI项目管理执行协议",
+      "provider": "workspace",
+      "sourcePath": ".workbuddy/skills/project-governance/SKILL.md",
+      "installedPath": ".workbuddy/skills/project-governance/SKILL.md",
+      "sourceHash": "b021e6e7d77211c13c3dfb5cee3f087bd8cbc95f8cd0f1fd0dc6507ba2a5564a",
+      "installHash": "b021e6e7d77211c13c3dfb5cee3f087bd8cbc95f8cd0f1fd0dc6507ba2a5564a",
+      "version": "1.0.0",
+      "status": "active",
+      "availability": "available",
+      "trust": "locked",
+      "reviewedAt": "2026-07-17",
+      "permissions": {
+        "reads": ["PROJECT_RULES.md", "docs/governance/**", "docs/tasks/templates/**"],
+        "writes": ["docs/tasks/**", "docs/progress/**", "docs/decisions/**", "memory/**", ".workbuddy/memory/**"],
+        "exec": [],
+        "network": [],
+        "secrets": []
+      },
+      "triggers": [
+        "创建/修改任务卡、需求、变更、发布、验证、复盘",
+        "任何写入磁盘的实施动作之前",
+        "用户提到按方案/管理项目/任务卡/冻结/验证/发布",
+        "跨会话恢复/交接/记忆沉淀"
+      ],
+      "notes": "本工作区治理强制加载器；来源与安装同源，hash一致即locked。已通过 §13.5 新建准入与 §13.7 安全审查。"
+    }
+  ]
 }

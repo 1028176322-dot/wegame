@@ -17,3 +17,6 @@ releases/
 
 # 依赖（引擎/技术栈选型后按需补充）
 node_modules/
+
+# 本地工具运行目录（助手/IDE 运行时，非项目源码，不得入库）
+.workbuddy/

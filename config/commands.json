@@ -1,0 +1,9 @@
+{
+  "description": "项目命令定义（方案 §17.3）。TEST_COMMAND / VALIDATE_COMMAND 取代占位 NOT_IMPLEMENTED。",
+  "version": 1,
+  "baselineDate": "2026-07-17",
+  "owner": "Decision Owner",
+  "TEST_COMMAND": "python tools/validators/run_tests.py",
+  "VALIDATE_COMMAND": "python tools/validators/run_validators.py",
+  "notes": "命令以仓库根目录为 cwd 执行；运行器按脚本位置推导 REPO_ROOT。"
+}

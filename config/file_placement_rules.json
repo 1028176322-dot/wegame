@@ -125,6 +125,51 @@
       "generated": false,
       "retention": "read-only",
       "notes": "不得被 current 入口继续引用"
+    },
+    {
+      "path": "docs/design",
+      "owner": "Decision Owner",
+      "allowedPatterns": ["*.md", "*.json", "*.csv"],
+      "forbiddenPatterns": ["*.tmp", "*.log", "*.zip", "*.bin"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "双轨制设计文档（轨道A）；子目录 balance/systems/i18n/schema 由最长前缀匹配覆盖"
+    },
+    {
+      "path": "config",
+      "owner": "Decision Owner",
+      "allowedPatterns": ["*.json"],
+      "forbiddenPatterns": ["*.tmp", "*.log", "*.zip", "*.bin"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "schema、默认值、命令定义分层（含 commands.json）"
+    },
+    {
+      "path": "data",
+      "owner": "Decision Owner",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.tmp", "*.log", "*.zip", "*.bin"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "双轨制机器可读配置（轨道B）；子目录 config/schemas/i18n 由最长前缀匹配覆盖"
+    },
+    {
+      "path": "docs/tasks/templates",
+      "owner": "Coordinator",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.bin", "*.zip"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "任务/变更/检查点模板库"
+    },
+    {
+      "path": "docs/tasks/coordination",
+      "owner": "Coordinator",
+      "allowedPatterns": ["*.md", "*.json"],
+      "forbiddenPatterns": ["*.bin", "*.zip"],
+      "generated": false,
+      "retention": "project-lifetime",
+      "notes": "多AI声明与交接；子目录 active 由最长前缀匹配覆盖"
     }
   ]
 }

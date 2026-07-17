@@ -8,6 +8,7 @@
 > 平衡数值（弹速、溅射半径、减速/毒/连锁参数、克制系数、护甲减伤、技能数值等）保持 `[PLACEHOLDER]`，仅标注"调优杆"，禁止硬编码。
 > **v0.2（S29 等级系统）**：命中结算的伤害/属性含 **S29 玩家等级加成（dmg/range/atk_speed 倍率，绝对值快照，不累加）**——由 S02 建塔时套用到塔有效属性，本系统消费该已修正属性。加成在开局/建塔时应用、玩家无需操作。详见 S29。
 > **S29 加成消费约定（澄清）**：塔有效属性（dmg/range/atk_speed）在**建塔时已由 S02 套用 S29 玩家等级加成**——**不累加，取当前等级单行**（`player_level_config[level]` 单查，非 Σ/Π）——并作为已修正属性传入战斗循环；本系统（S05）直接消费该属性，**不重复计算**等级加成。
+> **v0.3（战斗数值计算深化）**：新增 **§2.5「战斗数值计算 / 伤害管线」**——给出从"塔开火"到"目标 HP 减少"的**逐级可计算公式**（塔有效属性合成 S30 → 基础伤害 → skill_mod(S28) → buff_mod(S33) → 克制矩阵(S30) × 护甲减伤(S30) → 伤害特例 → 扣血钳制），含 **7 塔×5 护甲 = 35 组合演算示例表**、控制/击退结算、状态施加堆叠(S33)、死亡与击杀奖励触发(S03/S04/S08/S29)、边界异常表(E 编号接 S24/S30) 与跨系统公式冲突待裁定。数值初值取自 balance/S02/S30/S33，**零 [PLACEHOLDER]**（除标记为 NEEDS-DESIGN 的暴击项）。
 > 注：GDD/SYSTEM_BREAKDOWN 引用了"§5.8 战斗/状态"，但当前 GDD 实际无 §5.8（§5.7 为胜负）。本系统按既有 §5.7 + F7 设计，并建议 GDD 补充 §5.8（见冲突报告）。
 
 ---
@@ -137,6 +138,262 @@ sequenceDiagram
 | 主动技+暂停 | `onHide`(S20) 时主动技 CD 中 | CD 计时挂起，`onShow` 续计 | 零错乱 |
 | 被动事件竞态 | 同帧多被动钩子(导电+冰封易伤) | 串行结算，叠加为乘法/加法(按配置) | 最终值一致 |
 | 等级加成异常 | `player_level_config` 缺失/`bonus` 越界 | 缺则按 level=1 行(无加成)；bonus 钳制合法区间，对 S24 报可疑 | 塔可战 |
+
+---
+
+## 2.5 战斗数值计算 / 伤害管线（深化 · 落代码级公式）
+
+> 适用范围：本小节是 S05 战斗结算的**权威可计算定义**，取代 §2.1「命中结算」与 §3 `damage_formula` 的高层草图（后者为结构占位，本小节为乘法管线终版）。所有数值初值取自 `balance/S02_building_tower.md` / `balance/S30_attribute.md` / `balance/S33_status_effect.md`，**零 [PLACEHOLDER]**（暴击项除外，标 NEEDS-DESIGN）。跨系统冲突见 §2.5.10。
+
+### 2.5.1 管线总览（顺序）
+
+```
+塔开火(S2 节拍) → 索敌(S5) → 发射弹道 → 命中(S5)
+  ├─ damage_type == control (冰/风)  → 走 §2.5.5 控制结算（slow/knockback，无 HP 损失）
+  └─ damage_type ∈ {physical/magic/poison} → 走伤害管线 §2.5.2 Step1–7
+        Step1 塔有效属性合成 (S30)        → tower_effective.dmg
+        Step2 单次基础伤害                → base_dmg = tower_effective.dmg
+        Step3 技能修正 skill_mod (S28)    → 已折入 Step1（命中时取当前值）
+        Step4 状态修正 buff_mod (S33)     → 分解为 armor_mult / dmg_taken_mult / move_speed_mult
+        Step5 护甲判定 counter × armor_mitig (S30)
+        Step6 伤害类型特例 (magic×magic_immune=0)
+        Step7 扣血与钳制 target.hp = max(0, target.hp − effective_dmg)
+  → 飘字(S5) → 施加状态(S33 applyStatus, 堆叠规则)
+  → target.hp ≤ 0 ? → 死亡：赏金(S3)+掉木(S4/S31→S3)+波计数(S4)+粒子(S5/S31)+移除
+                       （XP 在 S8 结算时按 wave_reached 计算，非逐杀，见 §2.5.7）
+```
+
+### 2.5.2 逐级公式（变量定义 + 来源）
+
+**Step 1 — 塔有效属性合成（S30 铁律公式，建塔/升级/技能/状态变化时重算）**
+
+```
+tower_effective.dmg
+   = base_dmg(S02.tower_config.base_dps)
+   × growth(S02.tower_config.growth) ^ (L − 1)        // L=养塔等级, 建塔 L=1 → ×1
+   × player_level_mult(S29.player_level_config[session_player_level].dmg_mult)  // 单行不累加, Lv1=1.0
+   × skill_mod(S28)                                  // Π 已解锁被动/主动的伤害乘子, 默认 1.0
+   × buff_mod.dmg_mult(S33)                          // Π 对塔伤害的状态乘子, 默认 1.0
+```
+> 钳制：`tower_effective.dmg = clamp(…, attr_dmg_min=0, attr_dmg_max)`（S30 `attribute_def`）。
+
+**Step 2 — 单次基础伤害**
+```
+base_dmg = tower_effective.dmg     // 已合成（含 S29/growth/skill/buff.dmg_mult），本局内消费一次
+```
+
+**Step 3 — 技能修正 skill_mod（S28）**
+- 定义：`skill_mod = Π_{p∈已解锁且命中生效的被动/主动} p.dmg_mult`，默认 1.0（无技能）。
+- 进伤害方式：**已在 Step 1 折入 `tower_effective.dmg`**（S30 合成公式第 4 乘子）。命中时若技能在 CD/未解锁则取 1.0。
+- 例（数值见 S28 balance，当前 [PLACEHOLDER]）：炮塔被动②「重创」对重甲 +X% → 命中重甲时 skill_mod 临时 = 1+X%；魔法塔被动①「奥术穿透」= 护甲穿透，作用于 Step5 的 armor_mitig 而非 skill_mod。
+- **本小节 Step1 已含 skill_mod，故命中公式不再重复乘 skill_mod**（避免双重计算，见 §2.5.10 C-公式一致性澄清）。
+
+**Step 4 — 状态修正 buff_mod（S33）分解**
+`buff_mod(S33)` 是单位级乘子集（S33 §2.7 契约），对**伤害管线**而言只有两项进入、一项不进：
+
+| buff_mod 项 | 是否进伤害 | 作用位置 | 说明 |
+|---|---|---|---|
+| `dmg_mult` | 是（已折入 Step1） | 塔侧 | 塔受增益时 ×伤害；当前 scope 塔增益预留默认 1.0 |
+| `armor_mult` | 是 | Step5 armor_mitig | 敌 `armor_break`/`corrosion` 削减敌 armor，降低护甲减伤 |
+| `dmg_taken_mult` | 是 | Step5 incoming | 敌 `vulnerable`/`conductive` 放大受伤 |
+| `move_speed_mult` | **否** | 控制结算 | `slow`/`headwind` 只改 move_speed，**不影响任何伤害数值** |
+
+**Step 5 — 护甲判定（克制系数 × 护甲减伤，S30 全管线）**
+```
+counter     = damage_armor_matrix[ damage_type ][ target.armor_type ]   // S30 §3.2, 取值 {0,0.5,1,1.5}
+base_reduce = armor_type_def[ target.armor_type ].reduce                // S30 §3.3, {0,0.1,0.3,0,0}
+eff_reduce  = clamp( base_reduce × Π buff_mod.armor_mult , 0 , 0.9 )     // armor_break/corrosion 削减
+armor_mitig = 1 − eff_reduce                                          // 实际承伤比例
+```
+> 注：任务 step(5) 简化式 `effective_dmg = base_dmg × skill_mod × buff_mod × counter` 仅含克制系数；本管线采用 **S30 权威全模型**（克制 × 护甲减伤），否则轻/重甲的实际减伤会丢失（见 §2.5.10 C-护甲双重模型）。
+
+**Step 6 — 伤害类型特例**
+- `magic × magic_immune`：`counter = damage_armor_matrix[magic][magic_immune] = 0.0` → `effective_dmg = 0`（魔免免疫魔法，铁律）。
+- `damage_type ∈ {control}`（冰/风）：**本身无伤害**，强制 `effective_dmg ≡ 0`，直接转 §2.5.5 控制结算；其塔 `base_dmg`（冰18/风22）仅为名义属性，不转化为 HP 损失。
+
+**Step 7 — 最终扣血与钳制**
+```
+// 伤害型(physical/magic/poison)：
+effective_dmg = max( 0 , round( tower_effective.dmg × counter × armor_mitig × incoming_dmg_mult ) )
+// 控制型(control)：effective_dmg = 0
+target.hp    = max( 0 , target.hp − effective_dmg )      // 钳制 ≥0, 防负血
+if target.hp == 0 → onEnemyDeath(target)                 // §2.5.7
+```
+其中 `incoming_dmg_mult = clamp( Π buff_mod.dmg_taken_mult , 1.0 , 3.0 )`（S33 §2.4 上限 3.0 防秒杀）；`round` 取整策略见 §2.5.10 / `combat_dmg_round`。
+
+**完整可落代码伪码（伤害型一次命中）：**
+```ts
+function computeDamage(tower: EffectiveTowerAttr, target: EnemyAttr): number {
+  if (tower.damage_type === 'control') return 0;            // Step6: 控制无伤
+  const counter = MATRIX[tower.damage_type][target.armor_type] ?? 1.0;   // Step5, E04 缺键默认1
+  const baseReduce = ARMOR_DEF[target.armor_type]?.reduce ?? 0.0;        // Step5, E05 降级none
+  const effReduce = clamp(baseReduce * product(target.buffMod.armor_mult), 0, 0.9); // Step4/5
+  const armorMitig = 1 - effReduce;
+  const incoming = clamp(product(target.buffMod.dmg_taken_mult), 1.0, 3.0); // Step4
+  return Math.max(0, round(tower.dmg * counter * armorMitig * incoming)); // Step7
+}
+```
+
+### 2.5.3 演算示例表（7 塔 × 5 护甲 · 全组合 35 组）
+
+**前提（Lv1 建塔、session_player_level=1、无技能/无状态、无养塔升级）**：
+- `player_level_mult = 1.0`（S29 Lv1 行 dmg_mult=1.0，单行不累加）
+- `skill_mod = 1.0`，`buff_mod` 全 1.0 ⇒ `tower_effective.dmg = base_dmg`（直接取 balance/S02 初值）
+- 克制系数与减伤取 balance/S30：`physical{ none1.0/light1.5/heavy1.5/magic_immune1.5/air0.5 }`，`magic{ 1.0/1.0/1.0/0.0/0.5 }`，`poison{ 1.0/1.0/1.5/1.0/0.5 }`，`control{ 1.0/1.0/1.0/1.0/1.0 }`；`reduce{ none0/light0.10/heavy0.30/magic_immune0/air0 }`
+- 电塔 damage_type 归 physical（S30 C3），但其对空用覆盖系数 `electric_vs_air_override = 1.5`（非通用 physical_air=0.5）
+- `effective_dmg = round( base_dmg × counter × (1−reduce) )`，保留 1 位小数展示
+
+| 塔种 | damage_type | base_dmg | vs none | vs light | vs heavy | vs magic_immune | vs air | 克制验证 |
+|---|---|---|---|---|---|---|---|---|
+| 箭塔 | physical | 30 | 30.0 | **40.5** | **31.5** | **45.0** | 15.0 | 轻/重/魔免×1.5，空×0.5✓ |
+| 炮塔 | physical | 45 | 45.0 | **60.8** | **47.3** | **67.5** | 22.5 | 同物理，基数更高✓ |
+| 电塔 | physical* | 35 | 35.0 | **47.3** | **36.8** | **52.5** | **52.5** | 空=1.5 覆盖(非0.5)✓ |
+| 魔法塔 | magic | 60 | 60.0 | 54.0 | 42.0 | **0.0** | 30.0 | 魔免×0 免疫✓ |
+| 毒塔 | poison | 25 | 25.0 | 22.5 | **26.3** | 25.0 | 12.5 | 重甲×1.5✓ |
+| 冰塔 | control | 18 | 0 | 0 | 0 | 0 | 0 | 控制无伤→减速✓ |
+| 风塔 | control | 22 | 0 | 0 | 0 | 0 | 0 | 控制无伤→击退✓ |
+
+> 计算溯源（逐行验证，证明克制可计算）：
+> - 箭 vs 轻甲：`30 × 1.5(physical_light) × (1−0.10) = 30 × 1.5 × 0.90 = 40.5` ✓
+> - 箭 vs 重甲：`30 × 1.5 × (1−0.30) = 30 × 1.5 × 0.70 = 31.5` ✓
+> - 箭 vs 魔免：`30 × 1.5 × (1−0) = 45.0`（物理克魔免，S30✓）
+> - 箭 vs 空：`30 × 0.5 × 1 = 15.0`（物理对空弱✓）
+> - 魔法 vs 魔免：`60 × 0.0 × 1 = 0.0`（魔免免疫魔法✓）
+> - 电 vs 空：`35 × 1.5(override) × 1 = 52.5`（覆盖通用 physical_air=0.5✓）
+> - 毒 vs 重甲：`25 × 1.5(poison_heavy) × (1−0.30) = 25 × 1.5 × 0.70 = 26.3` ✓
+> - 冰/风：control 类型 → effective_dmg 强制 0（见 §2.5.5）
+
+### 2.5.4 带状态 / 技能 演算示例（验证 buff_mod 进伤害项）
+
+**场景**：炮塔（Lv1, raw=45, physical）打 重甲 怪（base_reduce=0.30），该怪已被「冰封易伤」挂 `vulnerable(×1.20)` 且被「破甲」挂 `armor_break(−20% 减免)`。
+```
+counter     = physical_heavy = 1.5
+base_reduce = 0.30
+eff_reduce  = clamp(0.30 × (1−0.20 armor_break), 0, 0.9) = clamp(0.30×0.80,0,0.9) = 0.24
+armor_mitig = 1 − 0.24 = 0.76
+incoming    = clamp(1.0 × 1.20 vuln, 1.0, 3.0) = 1.20
+effective_dmg = 45 × 1.5 × 0.76 × 1.20 = 61.6
+```
+> 对比无状态基准：`45 × 1.5 × 0.70 = 47.25`。易伤+破甲组合将单发伤害从 47.25 → 61.6（约 +30%），验证 `vulnerable`(进 dmg_taken) 与 `armor_break`(进 armor_mult) 均正确进入伤害，且 `slow`(move_speed) 不进。
+
+**导电叠加**：若同怪再被电塔命中挂 `conductive(×1.20)`，则 `incoming = 1.20 × 1.20 = 1.44`（异类乘算，S33 §2.6），`effective_dmg = 45 × 1.5 × 0.76 × 1.44 = 73.9`。
+
+**腐蚀叠层**：毒塔 `corrosion` 每层 −15% 减免（stack_cap_5），重甲满 5 层：
+`eff_reduce = clamp(0.30 × (1−0.15)^5, 0, 0.9) = clamp(0.30×0.4437,0,0.9)=0.133` → `armor_mitig=0.867`。
+
+### 2.5.5 控制 / 击退结算（不造成 HP 损失）
+
+控制型塔 `damage_type=control`（冰/风）命中时 **effective_dmg=0**，结算分支为施加状态而非扣血：
+- **冰塔（slow）**：调用 `S33.applyStatus(target, 'slow', {slow_k:0.5, duration:2.0}, 'on_hit')` → `target.move_speed ×= 0.5`（S33 `st_slow_k=0.50`）持续 2.0s（S33 `st_slow_duration=2.0`）；**move_speed 变化不影响任何伤害数值**。冰塔被动②「冰封易伤」在目标被减速时对其挂 `vulnerable(×1.20)`（S33 `st_vuln_k=20%`），使**其他塔**后续命中的 `incoming_dmg_mult` 提升。
+- **风塔（knockback）**：调用 `S33.applyStatus(target, 'knockback', {kb_dist:120, stun:1.0}, 'on_hit')` → 沿路径后退 `120px`（S33 `st_knockback_kb_dist=120`，位移钳至路径最近点防越界）+ `move_locked` 定身 `1.0s`（S33 `st_knockback_stun=1.0`）。风塔被动②「逆风惩罚」对反复被击退的怪叠 `headwind`（每层 −15% 移速，cap 3，S33 `st_headwind_slow=15%`、`st_headwind_max_stack=3`），间接放大全场 DPS（移速↓→在射程内更久）。
+- **不进入 Step7 扣血**；控制塔的「名义 dmg」(冰18/风22) 不转化为伤害。
+
+### 2.5.6 状态施加与堆叠（调用 S33）
+
+战斗层每次命中后，按塔 `status_effect`(S02) 与 S28 被动钩子调用：
+```ts
+function onHit(tower, target):
+  eff = (tower.damage_type === 'control') ? 0 : computeDamage(tower, target)
+  if (eff > 0) { target.hp = max(0, target.hp - eff); spawnDamageFloat(eff, tower.damage_type) }
+  // 施加状态（冰/毒/电由塔原生；破甲/冰封易伤/导电/腐蚀/逆风由 S28 被动触发）
+  if (tower.status_effect has mapping) S33.applyStatus(target, statusId, strength, duration)
+  if (S28 passive proc) S33.applyStatus(target, passiveStatusId, strength, duration)
+  if (target.hp <= 0) onEnemyDeath(target)
+```
+**堆叠规则（S33 §2.6，战斗层必须照此调用）**：
+- `refresh`（slow/poison_dot/burn/armor_break/vulnerable/conductive）：同类再施加 → 刷新 duration，强度取 `max`（不叠层防无限）。
+- `unique`（knockback/chain/infect）：同类再施加 → 重定位移/刷新，不叠层。
+- `stack_cap_N`（corrosion cap5 / headwind cap3）：每触发 +1 层（上限 N），满层后新触发刷新最旧层 duration。
+- 异类状态**可共存**（分别结算实例），互不排斥。
+
+### 2.5.7 死亡判定与击杀奖励触发
+
+```ts
+function onEnemyDeath(target):
+  if (target.is_dropped) return                  // 幂等, 防同帧重复掉(S31 §2.4)
+  target.is_dropped = true
+  // ① 金 (S03) —— 引用既有字段, 不重定义
+  gold = isBoss(target)
+      ? round(boss_reward_gold(S03.economy_config.boss_reward_gold) × reward_mult(S04.wave_config.reward_mult))
+      : round(kill_reward_gold(S03.economy_config.kill_reward_gold) × reward_mult(S04.wave_config.reward_mult) × enemy_gold_tier(target))
+  Economy.addGold(gold)                          // S03 校验 gold_cap
+  // ② 木 (S04 drop_wood_* 优先, 否则 S31 enemy_drop) —— session, 不持久化
+  rollWoodDrop(target)  →  Economy.addWood(wood, session=true)   // 接 S03/S04/S31
+  // ③ 波/杀计数 (S04)
+  Wave.onKill(target)                            // 清波判定 / 进度
+  // ④ XP —— 当前设计由 S08 局末结算产出, 非逐杀:
+  //        xp_gain = xp_base + per_wave_xp × wave_reached × (1 − leak_penalty × leak_norm)  (S08/S29)
+  //        （若需逐杀 XP, 见 §2.5.10 待裁定, 需新增 param, 当前不进管线）
+  // ⑤ 表现
+  spawnDeathFX(target); removeUnit(target)       // S05/S31 粒子+赏金飘字
+```
+**初值引用（既有，不重定义）**：`kill_reward_gold`/`boss_reward_gold` = S03 `economy_config`；`reward_mult` = S04 `wave_config.reward_mult`([P])；木 = S04 `drop_wood_chance`/`drop_wood_amount` 或 S31 `enemy_drop.*`；`enemy_gold_tier` 当前 S31 未定义 → 默认 1。XP 初值（S08）：`xp_base`/`per_wave_xp`([P])。
+
+### 2.5.8 边界 / 异常表（E 编号，接 S24/S30/S33）
+
+| E# | 场景 | 公式兜底 | 涉及 |
+|---|---|---|---|
+| E01 | 塔 dmg 为负 | `clamp(dmg,0,max)` 负值置 0 | S30-E01 |
+| E02 | eff_dmg / HP 溢出 | 钳 `attr_dmg_max` / `attr_hp_max`；S24 报可疑 | S30-E02 |
+| E03 | 除零 | 管线无分母（armor_mitig=1−reduce 恒安全）；`reduce` 缺→0 | S30-E03 |
+| E04 | 矩阵缺键 `[dmg][armor]` | `counter` 默认 1.0 + S25 告警 | S30-E04 |
+| E05 | armor_type 未知 | 降级 `none`（reduce 0，无减免） | S30-E05 |
+| E06 | damage_type 未知 | 降级 `physical` | S30-E06 |
+| E07 | 等级加成缺失 | 按 Lv1 行（mult 1.0，无加成） | S30-E07/S29-E03 |
+| E08 | 等级加成越界 | 钳制合法区间；S24 报可疑 | S30-E08 |
+| E09 | skill_mod 缺失 | `=1.0`（无修正） | S30-E09 |
+| E10 | buff_mod 缺失 | `=1.0`（无修正） | S30-E10 |
+| E11 | 敌派生 HP≤0 | 钳 `attr_hp_min=1` | S30-E11 |
+| E12 | NaN/Inf | 钳 `[min,max]`；S24 报可疑 | S30-E12 |
+| E13 | armor_break 把 armor 打负 | `eff_reduce=clamp(base_reduce×Πarmor_mult,0,0.9)≥0`；armor_mitig≤1.0 | S33-§2.4 |
+| E14 | magic×magic_immune=0 | `effective_dmg=0`，正常免疫，无死循环 | S31-§2.4 |
+| E15 | 易伤/导电叠满 | `incoming_dmg_mult=clamp(…,1.0,3.0)` | S33-§2.4 |
+| E16 | 多塔同帧打同怪 | 各弹道独立串行扣血，最终一致 | S05-§2.4 |
+| E17 | 目标飞行中死亡 | 弹道转火附近怪/失效 | S05-§2.4 |
+| E18 | 减速 speed→0 | `slow_k` 钳 `min=0.1`，move_speed 永不为 0 | S33-§2.4 |
+| E19 | 击退越界 | 位移钳至路径最近点，不脱离路径 | S33-§2.4 |
+| E20 | eff_dmg 负数（vuln/armor 组合） | `max(0, …)` 钳 0 | 本管线 Step7 |
+
+### 2.5.9 文字版时序（开火→命中→算伤→扣血→死亡→奖励）
+
+```
+[建塔/升级/技能/状态变更] → S30 合成 tower_effective.dmg（缓存）
+        │
+   S2 攻击节拍 → S5 索敌(最前/最强/范围) → S5 发射弹道
+        │
+   弹道命中目标 ──► S5 取 tower_effective.dmg
+        │
+        ├─ control(冰/风) ─► S33.applyStatus(slow/knockback) → 改 move_speed / 位移（无 HP 损失）
+        │
+        └─ 伤害型 ─► computeDamage():
+               counter=S30矩阵 → armor_mitig=S30减伤×S33 armor_mult
+               → incoming=S33 vuln/cond → effective_dmg=max(0, round(raw×counter×armor_mitig×incoming))
+               → target.hp = max(0, hp − effective_dmg)  → 飘字(z35, 按 damage_type 着色 S30)
+               → S33.applyStatus(塔原生/ S28被动状态, 按 stack_policy)
+               │
+               └─ target.hp ≤ 0 ?  ──否──► 继续
+                        │ 是
+                        ▼
+                  onEnemyDeath(target):
+                   S3.addGold( kill/boss_reward_gold × reward_mult )   // 金
+                   S4/S31 → S3.addWood( drop_wood_* / enemy_drop )    // 木(session)
+                   S4.onKill()                                        // 波/杀计数
+                   S5/S31 死亡粒子 + 赏金飘字 → removeUnit
+                   （XP 留待 S8 结算: xp_gain = xp_base + per_wave_xp×wave_reached×(1−leak_penalty×leak_norm)）
+```
+
+### 2.5.10 待裁定（跨系统公式冲突与推荐值 · 不擅自改他系统）
+
+| # | 冲突点 | 现状 | 推荐值 / 处理 |
+|---|---|---|---|
+| C-1 | `magic × magic_immune` 系数 | **S30（设计+balance）= 0.0**（魔免免疫魔法，铁律）；但 **`balance/S05_combat.md` 现存 `combat_cm_magic_vs_magic_immune = 1.5`** 与之矛盾（S30 §5.2 C1 已要求改 0.0，尚未执行） | 本管线采用 S30 **0.0**。建议将 `balance/S05_combat.md` 该值改为 `0.0`（本任务仅追加不改动既有行，故在此提出）。 |
+| C-2 | `armor_type` 枚举 | S30 权威 = none/light/heavy/**magic_immune**/**air**（无 poison）；S04 旧枚举含 poison；`balance/S05_combat.md` 仍有 `combat_armor_poison=0.2` | 本管线 5 护甲用 S30 的 air（弃 poison）。建议删 `balance/S05_combat.md` 的 `combat_armor_poison`，S04 枚举同步改 air。 |
+| C-3 | electric 对空克制 | S30 仅 4 damage_type（无 electric），`physical_air=0.5`；但 S28/S05 约定 `electric_vs_air=1.5` | 本管线对电塔用覆盖系数 `combat_electric_vs_air_override=1.5`（已在 balance 新增）。建议 S30 或 S02 固化此逐塔覆盖。 |
+| C-4 | 护甲双重模型 | 任务 step(5) 仅 `counter`；S30 另定义 `armor_type_def.reduce`（light0.10/heavy0.30）独立减伤 | 采用 **S30 全管线** `effective_dmg = raw × counter × (1−eff_reduce) × incoming`。若坚持只用矩阵，须把 reduce 折进矩阵 20 项重算，否则轻/重甲减伤丢失。 |
+| C-5 | armor 连续值 vs 类型 | S33 把 armor 当连续值 `eff_armor` 被 armor_break/corrosion 削；S30 §3.3 是离散 `armor_type→reduce%` | 本管线折中：`eff_reduce = base_reduce × Π armor_mult`（armor_break=×(1−0.20)），保持离散类型可读。建议 S30/S33 统一为单一模型。 |
+| C-6 | S05 §3 `damage_formula` 减法 | S05 §3 草图 `base×…×counter − armor_reduce`（减法）；S30/S33 用乘法 `×(1−reduce)` | 本管线用**乘法**（与 S30/S33 一致）。建议更新 S05 §3 `damage_formula` 文案为乘法管线。 |
+| C-7 | `corrosion` 语义 | S28 原文「腐蚀=DoT 可叠 N 层」；S33/brief 实现为「护甲削减/层 cap5」 | 本管线按 S33（护甲削减）实现。待 DO 裁定统一 S28 文案或 S33 语义。 |
+| C-8 | 公式一致性（双重计算陷阱） | 任务 step(2)(3)(4)(5) 把 skill_mod/buff_mod 作为命中时独立乘子，但 S30 合成已将其折入 `tower_effective.dmg` | 澄清：**Step1 已含 skill_mod 与 buff_mod.dmg_mult**，命中公式 `effective_dmg = raw × counter × armor_mitig × incoming`（raw 已是合成值），**不可再乘 skill_mod/buff_mod** 以免双重计算。 |
 
 ---
 

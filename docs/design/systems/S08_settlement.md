@@ -33,6 +33,22 @@
        │  [再来一局] (40,1050) 330×96      [回大厅] 330×96 │ y=1050
        └──────────────────────────────────────────── 1334 ┘
         （失败：同面板，简版战绩，不罚资源）
+
+**视图：无尽模式结算面板（result_type=endless，仅"结束"口径，无胜利）**
+
+```
+  (0,0)┌─────────────────────────────────────────── 750 ──┐
+       │              （战斗冻结背景）                      │
+       │  ┌── 结算面板 z70 (75,400)-(675,900) ──┐          │ y=400
+       │  │  本局结束 ENDLESS_RESULT  [新纪录!] z71    │     │
+       │  │  ENDLESS_NO_WIN（无尽模式无胜利）         │     │
+       │  │  到达第 X 波 · 击杀 Y · 分数 Z          │     │
+       │  │  产出: 🪙 +A   🪵 +B   ✨ XP +C        │     │
+       │  │  （分数 Z 上榜 S13）                    │     │
+       │  └──────────────────────────────────┘          │ y=900
+       │  [再来一局] (40,1050) 330×96      [回大厅] 330×96 │ y=1050
+       └──────────────────────────────────────────── 1334 ┘
+```
 ```
 
 ### 1.3 组件表（x,y 左上角；w×h；z）
@@ -50,7 +66,11 @@
 
 ```mermaid
 flowchart TD
-    A[胜: 全波清空 / 败: Lives=0] --> B[算产出公式]
+    A[胜: 全波清空 / 败: Lives=0] --> A0{result_type?}
+    A0 -->|standard| B[算产出公式(胜/负)]
+    A0 -->|endless| B0[算 wave_reached+total_kills→score]
+    B0 --> F0[入账: XP(S29)+金/木(S03/S11); score→S13排行]
+    F0 --> G[比对历史最佳→新纪录?]
     B --> C{胜利?}
     C -->|是| D[产出=base+per_wave×wave×leak_coef]
     C -->|否| E[简版战绩, 无惩罚产出]
@@ -74,6 +94,7 @@ flowchart TD
 | 胜利结算 | 全波清空 | 产出 = base + per_wave×wave_reached×leak_coef → 写 S3/S11 → 写档 | 战绩+产出 |
 | XP 产出 | 胜/负结算 | `xp_gain` = xp_base + per_wave_xp×wave_reached×(1−leak_penalty×leak_normalized) → 累加 S29 `current_xp` → 可能升级（S29） | 等级 XP |
 | 失败结算 | Lives=0 | 简版战绩（无惩罚产出）→ 写最佳波数 | 战绩 |
+| 无尽结算 | 无尽模式 Lives=0（漏光） | `wave_reached`+`total_kills`→`score = wave×w_wave + kills×w_kill`；产 XP(S29)+金/木(S03/S11)；`score`→S13 排行；无胜利态 | 战绩+分数 |
 | 新纪录判定 | 写档时 | 比对历史最佳 → 标记 | 新纪录标 |
 | 再来一局 | 点按钮 | 重置单局状态 → 回 S1 开局 | 新局 |
 | 回大厅 | 点按钮 | 存档 → S10 | 大厅 |
@@ -91,6 +112,11 @@ stateDiagram-v2
     RecordCheck --> Idle : 显示面板
     Idle --> Restart : 点再来一局
     Idle --> Lobby : 点回大厅
+    [*] --> EndlessSettle : 无尽 Lives=0（漏光）
+    EndlessSettle --> EndlessScore : wave_reached+total_kills→score
+    EndlessScore --> XPGain : 产 xp_gain(S29)+金/木(S03/S11)
+    EndlessScore --> EndlessRank : score 写 S13 排行(只升不降)
+    EndlessRank --> RecordCheck
 ```
 
 ### 2.3 时序流程图（mermaid sequenceDiagram — 胜利结算入账）
@@ -116,6 +142,8 @@ sequenceDiagram
     S8->>S1: 重置单局
 ```
 
+> **无尽模式时序（result_type=endless）**：S4→S8 通知 `Lives=0` + `wave_reached` + `total_kills`；S8 算 `score = wave×w_wave + kills×w_kill` → 入账 XP(S29) + 金/木(S03/S11) → `score` 写 S13 排行（只升不降）→ 显示无尽结算面板（无胜利标题，显 wave/kills/score/新纪录）。
+
 ### 2.4 异常与边界用例表
 
 | 场景 | 触发条件 | 处理流程 | 输出 / 兜底 |
@@ -134,6 +162,9 @@ sequenceDiagram
 | XP 产出异常 | `xp_gain` 计算为负/溢出 | 钳制至 [0, cap]；异常则不升级、不崩 | 安全 |
 | 升级并发 | 结算与升级回写竞态 | S29 `isLeveling` 锁，仅首触发有效；S8 侧不重复产 XP | 不重复 |
 | 升级持久化失败 | 写 `player_level`/`current_xp` 失败 | 同数据损坏处理（重试 3 次→内存缓存，下次补写） | 不丢 |
+| 无尽分数溢出 | `score` 超 int 上限 | 钳制至 S13 `max`（同 wave 钳制） | 不溢出 |
+| 无尽波数越界 | `wave_reached` > max_wave_cap(>0) | 钳制至 cap | 合理 |
+| 无尽 score 缺失 | 权重/击杀为 0 | score=0 仍上榜(最低) | 不崩 |
 
 ---
 
@@ -150,6 +181,7 @@ sequenceDiagram
 | fail_penalty | bool | true/false | false | 失败是否扣资源（默认否，降挫败） |
 | new_record_bonus | int | 0–100 | `[PLACEHOLDER]` | 新纪录额外奖励。**调优杆**：冲榜动力 |
 | best_metric | enum | wave/tower_level | "wave" | 最佳记录维度（接 S13） |
+| result_type | enum | standard/endless | standard | 结算类型：**standard**=预置关（胜/负双态）；**endless**=无尽生存（仅"结束"态，无胜利；输出 `wave_reached`+`total_kills`+`score`，见 §2） |
 | xp_base | int | 0–500 | `[PLACEHOLDER]` | 胜利基础 XP（S29）。**调优杆**：升级节奏 |
 | per_wave_xp | int | 1–50 | `[PLACEHOLDER]` | 每撑过波奖励 XP（S29）。**调优杆**：进度价值 |
 
@@ -161,6 +193,8 @@ win_base_gold,win_base_wood,per_wave_gold,leak_penalty,fail_penalty,new_record_b
 ```
 
 > 说明：单例全局配置（一行）；所有 `[PLACEHOLDER]` 须经试玩调优，禁止硬编码。产出公式：`gold = win_base_gold + per_wave_gold × wave_reached × (1 − leak_penalty × leak_count_normalized)`；XP 公式（S29）：`xp_gain = xp_base + per_wave_xp × wave_reached × (1 − leak_penalty × leak_count_normalized)`。
+
+> **无尽模式（result_type=endless）产出口径**：`score = wave_reached × w_wave + total_kills × w_kill`（`w_wave`/`w_kill` 来自 `S32.endless_config.score_weights`，初值见 balance）。无尽仍产 `xp_gain`（S29，公式同上，以 `wave_reached` 代入）与 session 木/金（S03/S11，以 `reward_per_wave × wave_reached`，见 S32 `endless_config`）；`score` 写入 S13 排行（`best_wave` 维度记 `wave_reached`，另可扩展 `endless_score` 维度，见 NEEDS-DESIGN）。无尽**无胜利态**，结算面板不显"胜利"，仅显到达波数/击杀/分数/新纪录。
 
 ---
 

@@ -19,6 +19,7 @@
 | 40 | 难度标识 StarBar | 卡内：1–3 星 |
 | 40 | 解锁提示 LockTag | 锁卡：「通关前一关解锁」 |
 | 40 | 进入按钮 StartBtn | 底部「开始」（选中已解锁卡可点） |
+| 40 | 无尽入口 EndlessEntry | 选关页顶部独立卡片：无尽模式入口（与标准选关网格并列，非网格内卡） |
 | 46 | 返回 BackBtn | 左上回大厅 |
 
 ### 1.2 像素级线框（750×1334，ASCII 原型，单位 px）
@@ -44,6 +45,23 @@
   └──────────────────────────────────────────────┘ y=1334
 ```
 
+**视图 B：无尽模式入口卡（独立卡片 EndlessEntry，750×1334，锚定选关页顶部，与标准网格并列）**
+
+```
+  0       150      300      450      600      750
+  ┌──────────────────────────────────────────────┐ y=0
+  │ (20,40)⟲返回        选择关卡                  │ y=40  BackBtn 64×64
+  │  ┏━━━ 无尽模式 ENDLESS_MODE ━━━━━━━━━━━━━━━┓  │ y=110 EndlessEntry 670×160
+  │  ┃ 无尽生存：无胜利，尽力坚持更久！ ENDLESS_DESC ┃ │
+  │  ┃ 每 N 波出 Boss · 波数+击杀计分 · 上榜 S13   ┃ │
+  │  ┃ 解锁：Lv.{lv}（已达 ✓ / 🔒未达）ENDLESS_UNLOCK ┃ │
+  │  ┃        [ 进入 ENDLESS_ENTER ] 300×72     ┃ │ y=230
+  │  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ │ y=270
+  │  （下方标准选关网格 LevelGrid 原样，y 起点下移到 300） │
+  └──────────────────────────────────────────────┘ y=1334
+```
+```
+
 ### 1.3 组件表（精确坐标 / 尺寸 / 层级 / 响应）
 
 | 组件 ID | 位置(x,y) | 尺寸(w×h) | z | 响应行为 | 备注 |
@@ -57,12 +75,22 @@
 | StarBar(i) | 卡内 (20,150) | 90×24 | 41 | 无交互 | 难度星 |
 | LockTag(i) | 卡内居中 | 48×48 | 42 | 无交互（锁卡） | 🔒 |
 | StartBtn | (225,1150) | 300×96 | 40 | 选中已解锁→S1 | 未选/锁时禁用 |
+| EndlessEntry | (40,110) | 670×160 | 40 | 无交互（展示） | 无尽入口卡；锚定 Top-Center，安全区 y≥88 下；九宫(3×3,cap 16) 拉伸 |
+| EndlessTitle | 卡内 (60,130) | 文本 28px | 40 | 静态 | i18n `ENDLESS_MODE` |
+| EndlessDesc | 卡内 (60,168) | 文本 20px | 40 | 静态 | i18n `ENDLESS_DESC`（模式简介） |
+| EndlessUnlock | 卡内 (60,212) | 文本 20px | 40 | 静态 | i18n `ENDLESS_UNLOCK`，显示 `S32.endless_config.unlock_level`（S29 等级）；未达则 🔒 灰显 |
+| EndlessEnterBtn | (225,230) | 300×72 | 40 | 点 → 校验 S29 等级 → 进无尽(S1+S4生成) | 未达 `unlock_level` 则禁用+提示；锚定卡内居中 |
 
 ### 1.4 交互流程图（大厅 → 选关 → 进关）
 
 ```mermaid
 flowchart TD
     A[大厅 S10 → 选关入口] --> B[读档 S18: 解锁进度]
+    A --> E0[无尽入口卡 EndlessEntry]
+    E0 --> E1{player_level ≥ S32.endless_config.unlock_level?}
+    E1 -- 否 --> E2[显 🔒 + ENDLESS_UNLOCK 提示]
+    E1 -- 是 --> E3[进无尽: S1地图 + S4程序化生成]
+    E2 --> E0
     B --> C[渲染卡三态: 锁/可/通]
     C --> D{点卡}
     D --> E[校验 pre_level 通关?]
@@ -87,6 +115,8 @@ flowchart TD
 | 关卡列表 | 读档(S18) | 取解锁进度 → 渲染卡三态 | 网格态 |
 | 解锁检查 | 点卡 | 校验 `pre_level` 通关 → 允许/拒 | 可否进 |
 | 进关 | 点开始(已解锁) | 载 `map_id`+`wave_config` → S1 | 开局 |
+| 无尽入口 | 大厅→选关页渲染 | 读 `S32.endless_config.unlock_level` → 显示 EndlessEntry 卡（锁/可态） | 入口态 |
+| 无尽进关 | 点 EndlessEnterBtn | 校验 S29 `player_level` ≥ `unlock_level` → 载 map(S1) + 触发 S4 无尽生成 | 进无尽局 |
 | 通关解锁 | S8 胜 | 标记本关通关 → 解锁下一关(S11) | 进度+ |
 | 难度参数 | 进关时 | 按 `level.difficulty` × `diff_mult` 缩放波表 | 难度 |
 
@@ -198,6 +228,21 @@ lv_01,100,20,true
 lv_02,150,30,true
 lv_03,200,40,true
 ```
+
+### 3.3 无尽入口卡（EndlessEntry · 引用 S32.endless_config）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| entry_id | string | 固定 "endless" |
+| title_id | string | i18n `ENDLESS_MODE` |
+| desc_id | string | i18n `ENDLESS_DESC` |
+| unlock_level | int | 来自 `S32.endless_config.unlock_level`（S29 等级门槛，双闸门之一） |
+| enter_btn_id | string | i18n `ENDLESS_ENTER` |
+| mode | enum | endless（进 S1 + 触发 S4 无尽程序化生成，不载 wave_set） |
+
+> 无尽入口卡为标准选关页顶部的**独立卡片**，与 LevelGrid 网格内关卡卡并列但不同源：网格卡来自 `level_config`(本系统) + `stage_config`(S32)，无尽卡来自 `S32.endless_config`。进关时不载 `map_id`+`wave_config` 固定波表，而是进 S1 地图后由 S4 按 `endless_config` 公式程序化生成敌群（详见 S04 §2.5）。
+> 分辨率自适应：EndlessEntry 锚定 Top-Center（安全区 y≥88 下），九宫拉伸；EndlessEnterBtn 锚定卡内居中；全部避让 顶部 y<88、底部 y>1290，letterbox 时整体缩放（同 S29/S32 基准 750×1334）。
+> 例外说明：本系统边界"不做关卡内随机种子（首版固定）"针对 **standard 关卡**的公平/可复现；无尽模式为生存玩法，敌群由 S04 程序化生成（含轻量随机抽敌种，见 S04 §2.5），不受该规则约束（生存模式无"最优路线"需复现）。
 
 ---
 

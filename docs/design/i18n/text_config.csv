@@ -1,0 +1,187 @@
+id,zh-CN,en,zh-TW,context
+TOWER_ARROW,箭塔,,,S02 建塔选择条/图鉴：物理单攻·克轻甲
+TOWER_CANNON,炮塔,,,S02 建塔选择条/图鉴：物理溅射·克集群重甲
+TOWER_ICE,冰塔,,,S02 建塔选择条/图鉴：控制减速·克所有
+TOWER_WIND,风塔,,,S02 建塔选择条/图鉴：击退控制(第二类控制)
+TOWER_MAGIC,魔法塔,,,S02 建塔选择条/图鉴：真伤·魔免克星(等级解锁)
+TOWER_POISON,毒塔,,,S02 建塔选择条/图鉴：持续DoT·克高HP(等级解锁)
+TOWER_ELECTRIC,电塔,,,S02 建塔选择条/图鉴：连锁·克密集(等级解锁)
+HUD_GOLD,金,,,S03/S07 顶部货币条：金币标签
+HUD_WOOD,木,,,S03/S07 顶部货币条：木头标签
+HUD_LIVES,生命,,,S06/S07 顶部：漏怪容错(Lives)标签
+HUD_WAVE,第 {x} / {y} 波,,,S04/S07 波次指示；x=当前波 y=总波
+HUD_SPEED_2X,2x,,,S07 底部操作条：加速按钮
+HUD_PAUSE,暂停,,,S07 底部操作条：暂停
+HUD_RESUME,继续,,,S07/S20 继续战斗
+HUD_BOSS_WARN,Boss 来袭,,,S04 全屏Boss预警文案
+BTN_BUILD,建造,,,S02 空塔位点击：建塔
+BTN_UPGRADE,养塔,,,S02 养塔面板入口
+BTN_SELL,卖塔,,,S02 信息卡：出售返还金
+BTN_TARGET,索敌,,,S02 信息卡：切换索敌模式
+LABEL_MAX_LEVEL,已满级,,,S02 养塔达软封顶：按钮隐藏显此
+LABEL_NEXT_LV_PREVIEW,下一级预览,,,S02 养塔面板：下一级属性预览
+BTN_EMERGENCY_EXCHANGE,应急兑换,,,S03 货币条入口按钮
+PANEL_EXCHANGE_TITLE,应急兑换,,,S03 兑换面板标题
+EXCHANGE_RATE,汇率,,,S03 兑换面板：当前汇率
+EXCHANGE_QTY,数量,,,S03 兑换面板：兑换数量
+BTN_CONFIRM,确认,,,S03/S11/S12/S14 通用确认
+BTN_CANCEL,取消,,,S03/S11/S12/S14 通用取消
+TOAST_EXCHANGE_USED,今日兑换次数已用尽,,,S03 应急兑换越界提示
+WAVE_PREP,准备中…,,,S04 准备期倒计时文案
+ENEMY_PREVIEW,敌预览,,,S04 出怪前敌种预览标签
+BOSS_WARN_FULL,Boss 预警,,,S04 全屏闪 Boss 预警(同 HUD_BOSS_WARN 变体)
+LABEL_FAIL,失败,,,S06/S08 失败遮罩标题
+LEAK_FEEDBACK,漏怪,,,S06 漏怪全屏红闪反馈
+SETTLE_WIN,胜利,,,S08 结算面板：胜利标题
+SETTLE_LOSE,失败,,,S08 结算面板：失败标题(简版)
+SETTLE_TITLE,战绩,,,S08 结算面板：战绩区
+BTN_REPLAY,再来一局,,,S08 结算主按钮
+BTN_TO_LOBBY,回大厅,,,S08 结算次按钮
+SETTLE_NEW_RECORD,新纪录！,,,S08 破最佳时金边提示
+SETTLE_XP_GAIN,本局 +{xp} XP,,,S08/S29 结算XP行；xp=本局获得经验
+ONB_GOT_IT,知道了,,,S09 引导气泡确认按钮
+ONB_SKIP,跳过,,,S09 引导跳过按钮 SkipBtn
+ONB_STEP_BUILD_ARROW,试着建一座箭塔,,,S09 步1 引导话术
+ONB_STEP_FIRST_KILL,击败第一只怪,,,S09 步2 引导话术
+ONB_STEP_BUILD_WIND,建造风塔，体验击退控制,,,S09 步3 引导话术
+ONB_STEP_EXCHANGE,金币不够？试试应急兑换,,,S09 步4 引导话术
+ONB_STEP_UPGRADE,把木头喂给箭塔，看它变强,,,S09 步5 引导话术
+ONB_STEP_ICE,用冰塔减速怪物，配合风塔击退,,,S09 步6 引导话术
+ONB_HOOK_UNLOCK,新内容已解锁，去大厅看看吧,,,S09 收尾钩子文案
+BTN_START_GAME,开始游戏,,,S10 主按钮
+HUB_META_RES,元资源,,,S10 状态条：元进度资源
+HUB_BEST_WAVE,最佳波数,,,S10 状态条：历史最佳
+HUB_SEASON_COUNTDOWN,赛季倒计时,,,S10 状态条：赛季剩余
+BTN_BACK,返回,,,S10/S11/S12/S13/S14/S15/S16/S17 通用返回
+META_UNLOCK_SUCCESS,解锁成功,,,S11 节点激活金光特效文案
+CHECKIN_TITLE,每日签到,,,S12 标题
+CHECKIN_STREAK,连续签到 {n} 天 / 最高 {m},,,S12 连签计数；n=当前 m=最高
+CHECKIN_CLAIM_TODAY,领取,,,S12 今日可领高亮按钮
+CHECKIN_CLAIMED,明日再来,,,S12 已领显此
+CHECKIN_REWARD_FLY,奖励已发放,,,S12 领取特效文案
+RANK_TITLE,排行榜,,,S13 标题
+RANK_MY_RANK,我的名次,,,S13 底部：当前排名
+RANK_UNSYNCED,未同步,,,S13 拉取失败/超时标
+BTN_REFRESH,刷新,,,S13 右上刷新
+RANK_BEST_WAVE,最佳波数,,,S13 榜单列：最高波数
+LEVEL_LOCK,通关前一关后解锁,,,S14 锁卡提示
+BTN_START,开始,,,S14 进入按钮
+LEVEL_STARS,难度,,,S14 卡内星级标识
+ACH_TITLE,成就,,,S15 标题
+ACH_DONE,成就达成！,,,S15 完成弹窗
+ACH_PROGRESS,进度,,,S15 列表进度条标签
+CODEX_TAB_TOWER,塔图鉴,,,S16 标签切换：塔
+CODEX_TAB_ENEMY,敌图鉴,,,S16 标签切换：敌
+CODEX_ARMOR,护甲类型,,,S16 敌详情：护甲
+CODEX_RESTRAIN,克制,,,S16 敌详情：克制关系
+CODEX_WEAK,弱点,,,S16 敌详情：弱点
+CODEX_LOCKED,未解锁,,,S16 未解锁剪影标注
+SEASON_TITLE,赛季,,,S17 标题
+SEASON_COUNTDOWN,倒计时,,,S17 横幅倒计时
+SEASON_REWARD,奖励轨道,,,S17 奖励轨道区
+SAVE_CORRUPT_TITLE,存档已损坏,,,S18 损坏确认弹层标题
+SAVE_RESET,重置存档,,,S18 用户选择：重置
+SAVE_RESTORE,恢复,,,S18 用户选择：恢复旧档
+LOAD_TITLE,加载中…,,,S19 启动loading首屏
+LOAD_PROGRESS,进度,,,S19 进度条标签
+BTN_RETRY,重试,,,S19 下载失败重试
+LOAD_DOWNLOAD,下载中…,,,S19 需下载分包提示
+LIFE_PAUSE_CONFIRM,已暂停,,,S20 暂停确认层文案
+LIFE_CONTINUE,继续,,,S20 继续(同 HUD_RESUME 语义)
+REMOTE_UPDATED,配置已更新,,,S21 配置更新轻提示(1.5s淡出)
+SET_TITLE,设置,,,S22 标题
+SET_BGM,音乐,,,S22 行：BGM
+SET_SFX,音效,,,S22 行：音效
+SET_VIBRATE,震动,,,S22 行：震动
+SET_FONT,字号,,,S22 行：字号
+SET_FONT_SMALL,小,,,S22 字号分段：小
+SET_FONT_MID,中,,,S22 字号分段：中
+SET_FONT_LARGE,大,,,S22 字号分段：大
+SET_TOUCH_AREA,点击区,,,S22 行：无障碍点击区
+SET_TOUCH_STANDARD,标准,,,S22 点击区：标准
+SET_TOUCH_LARGE,放大,,,S22 点击区：放大
+SET_AUTO_SKILL,主动技自动释放,,,S22 行：S28 自动释放开关
+SET_LANGUAGE,语言,,,S22 行：语言
+SET_ON,开,,,S22 开关：开
+SET_OFF,关,,,S22 开关：关
+MONET_AD_WOOD,看广告 +木,,,S26 看广告得木入口
+MONET_AD_REVIVE,看广告复活,,,S26 失败复活层
+MONET_SHARE,分享得奖励,,,S26 分享按钮
+FEEDBACK_TITLE,反馈,,,S27 标题
+FEEDBACK_PLACEHOLDER,请输入您的反馈…,,,S27 文本框placeholder
+FEEDBACK_SUBMIT,提交,,,S27 提交按钮
+FEEDBACK_SUCCESS,提交成功,,,S27 成功toast
+FEEDBACK_TYPE,类型,,,S27 反馈类型选择区
+SKILL_LABEL_ACTIVE,主动技,,,S28 技能按钮标签
+SKILL_LABEL_PASSIVE1,被动①,,,S28 被动①指示
+SKILL_LABEL_PASSIVE2,被动②,,,S28 被动②指示
+SKILL_DESC_TITLE,技能说明,,,S28 长按技能图标弹层标题
+SKILL_ARROW_ACTIVE,精准齐射,,,S28 箭塔主动
+SKILL_ARROW_P1,破甲,,,S28 箭塔被动①
+SKILL_ARROW_P2,连射,,,S28 箭塔被动②
+SKILL_CANNON_ACTIVE,饱和轰炸,,,S28 炮塔主动
+SKILL_CANNON_P1,燃烧溅射,,,S28 炮塔被动①
+SKILL_CANNON_P2,重创,,,S28 炮塔被动②
+SKILL_ICE_ACTIVE,极寒领域,,,S28 冰塔主动
+SKILL_ICE_P1,霜冻蔓延,,,S28 冰塔被动①
+SKILL_ICE_P2,冰封易伤,,,S28 冰塔被动②
+SKILL_WIND_ACTIVE,飓风之眼,,,S28 风塔主动
+SKILL_WIND_P1,持续气流,,,S28 风塔被动①
+SKILL_WIND_P2,逆风惩罚,,,S28 风塔被动②
+SKILL_MAGIC_ACTIVE,奥术爆发,,,S28 魔法塔主动
+SKILL_MAGIC_P1,奥术穿透,,,S28 魔法塔被动①
+SKILL_MAGIC_P2,法力充能,,,S28 魔法塔被动②
+SKILL_POISON_ACTIVE,剧毒新星,,,S28 毒塔主动
+SKILL_POISON_P1,腐蚀,,,S28 毒塔被动①
+SKILL_POISON_P2,毒性传染,,,S28 毒塔被动②
+SKILL_ELECTRIC_ACTIVE,雷暴,,,S28 电塔主动
+SKILL_ELECTRIC_P1,过载,,,S28 电塔被动①
+SKILL_ELECTRIC_P2,导电,,,S28 电塔被动②
+LVL_TITLE,等级,,,S29 等级条标签
+LVL_XP_ROW,本局 +{xp} XP,,,S29 结算XP行(同 SETTLE_XP_GAIN 数据源)
+LVL_UP,升级！,,,S29 升级演出文案
+LVL_UNLOCK_TOAST,解锁新功能：{feature},,,S29 解锁通知；feature=功能名
+SYS_LEVEL_UP,等级提升,,,S29 系统消息
+SYS_FEATURE_UNLOCKED,已解锁新内容,,,S29/S11 系统消息
+SYS_NET_RESTORED,网络已恢复,,,S21/S27 网络恢复提示
+ERR_NETWORK,网络异常，请检查网络连接,,,通用：网络请求失败
+ERR_LOAD_FAIL,资源加载失败,,,S19 加载失败
+ERR_SAVE_CORRUPT,存档数据异常，请重置或恢复,,,S18 存档损坏
+ERR_DATA_ABNORMAL,数据异常,,,S03/S05/S07 数值极值告警
+ERR_E1_EMPTY,请先填写反馈内容,,,S27 E1 空提交
+ERR_E4_TOOLONG,内容过长，请删减后再提交,,,S27 E4 文本超长
+ERR_E5_NO_SCREENSHOT,无法访问相册，已跳过截图,,,S27 E5 截图权限拒绝
+ERR_E6_DUPLICATE,操作过于频繁，请稍后再试,,,S27/S22/S28 连点防抖
+ERR_E7_NO_TYPE,请选择反馈类型,,,S27 E7 类型未选
+ERR_E10_QUEUE_FULL,离线反馈已达上限，最早记录已覆盖,,,S27 E10 队列满
+ERR_EXCHANGE_LIMIT,兑换次数已用尽,,,S03 应急兑换越界(同 TOAST_EXCHANGE_USED)
+ERR_NOT_ENOUGH_GOLD,金币不足,,,S02 建塔金不足
+ERR_NOT_ENOUGH_WOOD,木头不足,,,S02 养塔木不足
+ENEMY_SLIME,史莱姆,,,S31 敌人原型(轻甲)，弱箭塔
+ENEMY_GOLEM,石巨人,,,S31 敌人原型(重甲)，弱炮/毒
+ENEMY_BAT,飞蝠,,,S31 敌人原型(空军 air)，弱电/对空
+ENEMY_WRAITH,幽灵,,,S31 敌人原型(魔免 magic_immune)，魔法×0，弱物理
+ENEMY_POISON_BEAST,毒甲肉盾,,,S31 敌人原型(poison 高HP肉盾)，弱毒
+ENEMY_BOSS,Boss,,,S31 Boss 原型(高HP+特殊机制)
+STATUS_SLOW,减速,,,S33 状态：move_speed×slow_k
+STATUS_KNOCKBACK,击退,,,S33 状态：位移+定身(第二类控制)
+STATUS_POISON,中毒,,,S33 状态：poison_dot 持续扣血
+STATUS_BURN,燃烧,,,S33 状态：burn 持续伤害+溅射
+STATUS_CHAIN,连锁,,,S33 状态：chain 伤害跳数
+STATUS_ARMOR_BREAK,破甲,,,S33 状态：敌 armor 削减
+STATUS_VULNERABLE,易伤,,,S33 状态：受伤×vuln_k
+STATUS_CONDUCTIVE,导电,,,S33 状态：连锁增伤
+STATUS_CORROSION,腐蚀,,,S33 状态：护甲持续削减(叠层cap5)
+STATUS_INFECT,传染,,,S33 状态：DoT 扩散(死亡触发)
+STATUS_HEADWIND,逆风,,,S33 状态：敌移速惩罚(叠层cap3)
+ENDLESS_MODE,无尽模式,,,S14 大厅/选关：无尽模式独立入口卡标题
+ENDLESS_DESC,无尽生存：无胜利，尽力坚持更久！,,,S14 无尽入口卡：模式简介
+ENDLESS_ENTER,进入,,,S14 无尽入口卡：进入按钮
+ENDLESS_WAVE,波数,,,S04/S08 无尽模式：当前/到达波数
+ENDLESS_KILLS,击杀,,,S04/S08 无尽模式：累计击杀数
+ENDLESS_SCORE,分数,,,S08/S13 无尽模式：结算分数（波×权重+击杀×权重）
+ENDLESS_BEST,最佳,,,S10/S13 无尽模式：历史最佳分数/波数
+ENDLESS_NO_WIN,无尽模式无胜利，尽力坚持更久！,,,S08 无尽结算：无胜利提示
+ENDLESS_BOSS_INCOMING,Boss 来袭！,,,S04 无尽模式：Boss 周期预警（同 HUD_BOSS_WARN 变体）
+ENDLESS_UNLOCK,达到 Lv.{lv} 解锁无尽模式,,,S14 无尽入口卡：解锁门槛显示；lv=所需等级
+ENDLESS_RESULT,本局结束,,,S08 无尽结算：结束标题

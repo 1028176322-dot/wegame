@@ -5,6 +5,7 @@
 > 状态：v0.2-detailed（全部未提交） · 日期：2026-07-17
 > 加深维度：功能逻辑全面 + 状态机/流程图 + 像素级 UI 线框 + 完整异常边界 + 分辨率自适应
 > 关联：`SYSTEM_BREAKDOWN.md`（系统划分） · `GDD.md` · `FEATURE_SCOPE.md`
+> v0.2 新增 S30–S33（属性/敌人/关卡配置/状态）四系统，补齐战斗基础配置+美术盲区。
 
 ---
 
@@ -17,6 +18,10 @@
 | S3 经济系统 | [S03_economy.md](./S03_economy.md) | F5 | MVP/P0 |
 | S4 波次系统 | [S04_wave.md](./S04_wave.md) | F6 | MVP/P0 |
 | S5 战斗系统 | [S05_combat.md](./S05_combat.md) | F7 | MVP/P0 |
+| S30 属性系统 | [S30_attribute.md](./S30_attribute.md) | （战斗基础） | MVP/P0 |
+| S31 敌人系统 | [S31_enemy.md](./S31_enemy.md) | F6（敌人半边） | MVP/P0 |
+| S32 关卡配置系统 | [S32_stage_config.md](./S32_stage_config.md) | F17（内容层） | MVP/P1 |
+| S33 状态效果系统 | [S33_status_effect.md](./S33_status_effect.md) | F7（状态半边） | MVP/P0 |
 | S28 技能系统 | [S28_skill_system.md](./S28_skill_system.md) | F4 F7 | MVP/P0 |
 | S6 漏怪 / 生命系统 | [S06_leak_lives.md](./S06_leak_lives.md) | F8 | MVP/P0 |
 | S7 HUD / 操控系统 | [S07_hud.md](./S07_hud.md) | F9 | MVP/P1 |
@@ -63,6 +68,10 @@
 | economy_config | S3 | 双币/汇率/通胀 |
 | wave_config | S4 | 波次/怪物 |
 | combat_config | S5 | 克制/状态/弹道 |
+| attribute_def / damage_armor_matrix / attr_composition | S30 | 属性架构/克制矩阵（唯一权威） |
+| enemy_config / enemy_drop | S31 | 敌人实体/掉木（唯一权威） |
+| stage_config | S32 | 关卡内容数据（唯一权威） |
+| status_effect_config | S33 | 状态枚举/堆叠（唯一权威） |
 | skill_config | S28 | 技能(主动/被动/CD/cost/解锁) |
 | lives_config | S6 | 生命/漏怪 |
 | hud_config | S7 | HUD 布局 |

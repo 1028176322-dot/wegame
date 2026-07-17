@@ -32,6 +32,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # 二进制/生成物/依赖目录不扫
 SKIP_DIRS = {".git", "node_modules", "dist", "build", "vendor", "__pycache__", ".cache"}
+# 已知测试/夹具路径跳过（合成密钥仅供自测，非真实凭据；透明可审计，不掩盖真密钥）
+SKIP_PATH_FRAGMENTS = ("tools/validators/", "/tests/", "fixtures", "fixture")
 TEXT_EXT = {
     ".py", ".js", ".ts", ".json", ".md", ".txt", ".yaml", ".yml", ".toml",
     ".env", ".ini", ".cfg", ".sh", ".bat", ".ps1", ".html", ".css", ".csv",
@@ -103,6 +105,9 @@ def scan_repo(repo_root: Path) -> List[Tuple[str, str, int, str]]:
         path = Path(repo_root / raw)
         parts = set(Path(raw).parts)
         if parts & SKIP_DIRS:
+            continue
+        rel = raw.replace(os.sep, "/")
+        if any(frag in rel for frag in SKIP_PATH_FRAGMENTS):
             continue
         if path.suffix.lower() not in TEXT_EXT:
             continue

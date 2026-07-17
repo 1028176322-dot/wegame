@@ -20,6 +20,9 @@
 命令以仓库相对路径执行；运行器按脚本位置推导 `REPO_ROOT = parents[2]`，
 扫描范围仅 `git ls-files` 跟踪文件，不修改任何文件。
 
+> 秘密扫描跳过已知测试/夹具路径（`tools/validators/`、`/tests/`、`fixtures`），
+> 因其含合成密钥仅供自测；此为透明可审计的跳过，不掩盖真实凭据。
+
 ## 证据等级
 
 - `run_tests.py` 全 PASS → 检查器行为有负向 fixture 证明（E3）。

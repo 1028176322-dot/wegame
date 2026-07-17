@@ -9,7 +9,7 @@
 
 ## 关键裁剪决定
 
-1. 当前为 prototype 阶段，多数产品/技术领域为 `unassessed`，随首个决策任务逐步裁定（见 `AUTHORITY_INDEX.md`）。
+1. 当前为 prototype 阶段；tech-architecture（Cocos Creator 3.8.8）与 platform-release（微信小游戏）已于 2026-07-17 裁定为 current（见 `AUTHORITY_INDEX.md`）。玩法/产品目标（product-design、gameplay-systems）仍为 `unassessed`，待 Decision Owner 裁定。
 2. 单人 + AI 团队：Decision Owner 同时兼任 Release Owner / Integrator；AI 为 Executor。C3 变更须 Decision Owner 独立复核或书面接受风险（方案 §5.3）。
 3. Git 已初始化，冻结锁使用 commit SHA 与文件 SHA-256 双轨。
 4. 秘密、数据、删除、发布安全门不因规模或阶段降级（方案 §20.2）。

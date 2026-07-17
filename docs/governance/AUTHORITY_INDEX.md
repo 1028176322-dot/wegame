@@ -8,12 +8,12 @@
 |---|---|---|---|---|---|---|---|
 | ai-governance | `docs/governance/通用AI项目管理方案.md` | 本索引、各治理规则 | — | current | Decision Owner | 2026-07-17 | 方法论章节或模板变化 |
 | product-design | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 确定游戏玩法/目标 |
-| tech-architecture | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引擎/技术栈选型 |
+| tech-architecture | `docs/governance/TECH_ARCHITECTURE.md` | 方案 §14 | — | current | Decision Owner | 2026-07-17 | 引擎升级/首个工程任务 |
 | data-config | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引入配置/存档结构 |
 | ux-content-assets | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 引入美术/音频/文案资产 |
 | gameplay-systems | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 确定核心系统/关卡 |
 | test-quality | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 建立测试框架 |
-| platform-release | `unassessed` | — | — | unassessed | Decision Owner | 2026-07-17 | 确定发布平台/商店 |
+| platform-release | `docs/governance/PLATFORM_RELEASE.md` | 方案 §18 | — | current | Decision Owner | 2026-07-17 | 发布平台变更/微信政策变化 |
 | security-compliance | `docs/governance/SECURITY_RULES.md` | 方案 §15、§16 | — | current | Decision Owner | 2026-07-17 | 引入密钥/用户数据/合规要求 |
 | progress | `docs/progress/_index.md` | 方案 §7 | — | current | Decision Owner | 2026-07-17 | 新增任务或状态迁移 |
 
@@ -22,5 +22,7 @@
 | 对象 | SHA-256 |
 |---|---|
 | `docs/governance/通用AI项目管理方案.md` | `0bb4b00bfb0a433be144b0b636cf071af2f4ba689f536d8453a631d898ee298e` |
+| `docs/governance/TECH_ARCHITECTURE.md` | `3ed1a6acbf1a4647eae639e69bfd1d8e3f07e64e90d41b88a94094e30a78eafc` |
+| `docs/governance/PLATFORM_RELEASE.md` | `2ecc88addbb901c8f8b168c470fa4ed282746c73d6533cd30f218ce6d9936207` |
 
-> 注：游戏相关领域（product/tech/gameplay/ux/platform）当前均为 `unassessed`，须在对应首个决策任务中由 Decision Owner 裁定 current 入口后更新本表。
+> 注：tech-architecture 与 platform-release 已于 2026-07-17 由 Decision Owner 裁定 current 入口（微信小游戏 / Cocos Creator 3.8.8）。product-design（玩法待定）、gameplay-systems、data-config、ux-content-assets、test-quality 仍为 `unassessed`，须在对应首个决策/工程任务中裁定。

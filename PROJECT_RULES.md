@@ -9,14 +9,14 @@
 
 | 变量 | 值 | 说明 |
 |---|---|---|
-| `PROJECT_NAME` | wegame | 游戏开发项目（名称可由 Decision Owner 更新） |
+| `PROJECT_NAME` | wegame | **微信小游戏**（Cocos Creator 3.8.8） |
 | `REPO_ROOT` | `.` | 文档中只使用相对路径 |
-| `PRIMARY_PRODUCT_ROOT` | `unassessed` | 游戏引擎/源码结构未定，待首个工程任务确定 |
+| `PRIMARY_PRODUCT_ROOT` | `unassessed` | Cocos Creator 3.8.8 工程目录，待首个工程任务创建并冻结 |
 | `DEFAULT_BRANCH` | `main` | |
-| `PRIMARY_PLATFORM` | `unassessed` | PC / 主机 / 移动待裁定 |
-| `PACKAGE_MANAGER` | `unassessed` | 依赖引擎/技术栈选型 |
-| `TEST_COMMAND` | `NOT_IMPLEMENTED` | 尚无测试入口 |
-| `VALIDATE_COMMAND` | `NOT_IMPLEMENTED` | 尚无全量门禁入口 |
+| `PRIMARY_PLATFORM` | `wechat-mini-game` | 微信小游戏（已裁定 2026-07-17） |
+| `PACKAGE_MANAGER` | `npm` | Cocos Creator 第三方模块/扩展；引擎本体由编辑器管理 |
+| `TEST_COMMAND` | `NOT_IMPLEMENTED` | 微信小游戏测试框架待定（Cocos 测试/微信开发者工具） |
+| `VALIDATE_COMMAND` | `NOT_IMPLEMENTED` | 全量门禁待 Phase 5 检查器实现 |
 | `RELEASE_OWNER` | Decision Owner（用户本人） | |
 | `INTEGRATOR` | Decision Owner（用户本人） | 当前唯一集成者 |
 
@@ -26,8 +26,8 @@
 |---|---|
 | 生命周期 | prototype |
 | 数据敏感度 | internal |
-| 发布模式 | manual（应用商店/受监管发布：unassessed） |
-| 运行环境 | unassessed |
+| 发布模式 | wechat-mini-game（manual，经微信平台审核） |
+| 运行环境 | wechat-mini-game runtime（JS / Cocos Creator runtime） |
 | 团队模式 | human-AI |
 | 可逆性 | fully-reversible（原型阶段） |
 | 采用规模 | **Standard**（方案 §20.2） |
